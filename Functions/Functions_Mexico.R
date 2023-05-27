@@ -1,10 +1,18 @@
-###########################################
 #  Functions to load, clean and analyze the data for Mexico
-#
-#
-#
-###########################################
+#  Henrik-Alexander Schubert
+#  Max-Planck-Institute for Demographic Research
+#  University of Oxford
 
+
+## Functions: Legend -----------------------------------------
+## 1. load_data_MEX   = loads the data for Mexico
+## 2. unzip_MEX       = unzips the birth data for Mexico
+## 3. clean_names_MEX = cleans the variable names in the birth data
+## 4. clean_dataa_MEX = cleans the variables in the birth data
+## 5. Impute_mot_age  = impute the age of the mother
+## 6. impute_fat_age  = impute the age of the father
+## 7. 
+## 
 
 #### Load data for mexico -----------------------------------
 
@@ -100,7 +108,7 @@ clean_names_MEX <- function(...){
 }
 
 
-####
+#### Clean the data Mexico ----------------------------------------
 
 
 clean_data_MEX <- function(...){
@@ -108,21 +116,20 @@ clean_data_MEX <- function(...){
   ### Assign 
   dat <- (...)
   
-  ### Change the variable format -------------------------------------
-  
   # Make numeric
   dat <- mutate(dat, across(c(age_fat, age_mot, parity), as.integer))
-  
-  
-  #### Recode age and parity variables ----------------------------------
   
   # Recode age as missing
   vars <- c("age_fat", "age_mot", "parity", "live_births", "mun_res")
   dat[, vars] <- sapply(dat[ ,vars], function(x) ifelse(x == 99, NA, x))
-
   
-  #### Recode education, marriage and activity variables ----------------
+  # If a birth took place below age 12 recode to age 12
+  dat[dat$age_mot < 12 & !is.na(dat$age_mot), ]$age_mot <- 12
+  dat[dat$age_fat < 12 & !is.na(dat$age_fat), ]$age_fat <- 12
   
+  # If a birth takes place at old age
+  dat[dat$age_mot > 49 & !is.na(dat$age_mot), ]$age_mot <- 49
+  dat[dat$age_fat > 59 & !is.na(dat$age_fat), ]$age_fat <- 59
   
   # Recode education and activity
   vars <- c("edu_fat", "edu_mot", "act_fat", "act_mot", "mar_mot")
@@ -134,4 +141,42 @@ clean_data_MEX <- function(...){
   
   # Make factor
   dat <- mutate(dat, across(c(mar_mot, edu_mot, edu_fat, act_mot, act_fat), as.factor))
+}
+
+
+## Write an expand function ----------------------------------------------
+expand <- function(data, variable){
+  var <- data %>% pull({{variable}})
+  tmp <- as.data.frame(lapply(data, rep, round(var, 3) * 100))
+  return(tmp)
+   }
+
+
+#### Write a function for probabilistic imputation -----------------------
+
+impute_mot_age <- function(age, conditional_distribution = cond_age_fat){
+
+  # Assign every data set to the list
+  result <- lapply(age, function(x) subset(conditional_distribution, subset = age_fat == x))
+  
+  # Expand 
+  age_res <- map_dfr(result, .f = function(df) df[sample(1:nrow(df), size = 1, prob = df$prop), ])
+  
+  # Impute value
+  return(age_res$age_mot)
+}
+
+
+#### Write a function for probabilistic imputation ----------------------
+
+impute_fat_age <- function(age, conditional_distribution = cond_age_mot){
+
+  # Assign every data set to the list
+  result <- lapply(age, function(x) subset(conditional_distribution, age_mot == x))
+  
+  # Expand 
+  age_res <- map_dfr(result, .f = function(df) df[sample(1:nrow(df), size = 1, prob = df$prop), ])
+  
+  # Impute value
+  return(age_res$age_fat)
 }

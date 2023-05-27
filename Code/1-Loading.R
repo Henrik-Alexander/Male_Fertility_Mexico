@@ -1,6 +1,4 @@
 ################################################################################
-#                                                                              #
-#         Max-Planck Institute for Demographic Research                        #
 #               Subnational Birth Squeezes                                     #
 ################################################################################
 
@@ -11,7 +9,8 @@
   source("Functions/Graphics.R")
   source("Functions/Functions.R")
   
-  # Path: https://en.www.inegi.org.mx/contenidos/programas/natalidad/microdatos/2021/natalidad_base_datos_2021_dbf.zip
+  # Path:
+  # https://en.www.inegi.org.mx/contenidos/programas/natalidad/microdatos/2021/natalidad_base_datos_2021_dbf.zip
 
 ### Preparations -------------------------------------------------------------
 
@@ -27,7 +26,7 @@
 ### Get and clean the data ---------------------------------------------------
     
   # Load the Data
-  if(!all(file.exists(paste0("Raw/years/", years, "_dbf.zip")))){
+  if(!all(file.exists(paste0("Raw/Mexico", years, "_dbf.zip")))){
   map(years, load_data_MEX, zipfile)
   }
   
@@ -42,8 +41,6 @@
     
   # Save the data
   if(!file.exists("Data/births_complete_MEX.Rda")) save(data, file = "Data/births_complete_MEX.Rda")
-
-  
 
 
 ##########            END             ##############

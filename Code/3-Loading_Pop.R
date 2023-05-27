@@ -71,7 +71,7 @@ save(pop, file = "Data/pop_national_mex.Rda")
 
 
 # Load the data
-pop <- read_xlsx("Raw/Mexico/Poblacion_01.xlsx", skip = 4)
+pop <- read_xlsx("Raw/Poblacion_01.xlsx", skip = 4)
 
 # Clean the names
 pop <- clean_names(pop)
@@ -116,12 +116,24 @@ pop$age_group <- pop$age_group %>%
                     "100-", ""))
 
 # Reshape long
-pop <- pivot_longer(pop, cols = total_1990:females_2020, names_to = c("group", "year"), values_to = "pop", names_sep = "_" )
+pop <- pivot_longer(pop, 
+                    cols = total_1990:females_2020,
+                    names_to = c("group", "year"),
+                    values_to = "pop",
+                    names_sep = "_" )
 
-#### Plot the data
+#### Plot the data --------------------------------------------------------
+
+# Plot the distribution of men and women by age, region and year
 pop %>% filter(group != "total") %>% 
   ggplot(aes(age_group, pop, colour = group, group = interaction(group, year), linetype = year)) +
   geom_line() +
   facet_wrap(~ region, scales = "free_y") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+
+# Save the data 
+save(pop, file= "Data/pop_reg_Mex.Rda")
+
+
+##########            END             ##############

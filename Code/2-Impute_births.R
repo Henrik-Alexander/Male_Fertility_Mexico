@@ -3,7 +3,7 @@
 #                      Impute and calculate ASFRs                               #
 #################################################################################
 
-### Settings ##################################################################
+### Settings ------------------------------------------------------------------
 
 
 ## Last edited: 06.12.2021
@@ -19,22 +19,63 @@
   # load functions
   source("Functions/Functions.R")
 
-
-### Settings ##################################################################
-
+  # Load the data
+  load("Data/births_complete_MEX.Rda")
 
   # Age range for men and women
-  age_m <- 15:59
-  age_f <- 15:49
+  age_m <- 12:59
+  age_f <- 12:49
+
+### Extract the missings --------------------------------------------------
+  
+# Subset the data
+d <- data[[31]]
+  
+##  Function to impute mother's age
+impute_age_mother <- function(d){}
+  
+
+# Subset the missing
+miss <- subset(d, subset = is.na(age_mot))
+
+# Non missing data
+nmiss <- subset(d, subset = !is.na(age_mot))
+
+# 1. Layer: age_father
+cond_age_fat <- nmiss %>% 
+  filter(!is.na(age_fat)) %>%
+  group_by(age_fat) %>% 
+  mutate(Total = n()) %>% 
+  group_by(age_fat, age_mot) %>% 
+  summarise(prop = n() / unique(Total), .groups = "drop")
+
+# Complete the cases
+cond_age_fat <- complete(cond_age_fat, age_mot, age_fat, fill = list(prop = 0))
 
 
-### Read data #################################################################
+# Fill the variables
+d %>% mutate(age_mot = if_else(is.na(age_mot) & !is.na(age_fat), impute_mot_age(age = age_fat, cond_age_fat), age_mot))
+
+# Plot the result
+ggplot(cond_age_fat, aes(age_fat, age_mot, fill = prop)) +
+  geom_tile() +
+  scale_fill_gradient(low = "grey", high = "red") + 
+  geom_abline(slope = 1, intercept = 0) +
+  ylab("Age of the mother") + xlab("Age of the mother")
+
+# 2. Layer: parity
+
+  
+  
+
+  
+### Read data -------------------------------------------------------------
   
   # Read birth data
-  load("Data/US_states_births.rda")
+  load("Data/births_complete_MEX.Rda")
   
   # Population counts
-  load("Data/US_states_pop.rda")
+  load("Data/pop_reg_Mex.Rda")
   pop     <- pop[pop$age%in%11:99,]
   
   # Find year range
@@ -44,12 +85,9 @@
 
 
 
-### Edit age variable #########################################################
+### Edit age variable ----------------------------------------------------
   
-  # Edit Texas: In 1989 missing values coded with '89' instead of '99'
-  texas89 <- births$age_of_father%in%89 & births$state==44 & births$year==1989
-  births$age_of_father[texas89] <- "Unknown"
-  
+
   # Edit age variables: Restrict to age range (women)
   births$age_of_mother[births$age_of_mother<min(age_f)] <- min(age_f)
   births$age_of_mother[births$age_of_mother>max(age_f)] <- max(age_f)

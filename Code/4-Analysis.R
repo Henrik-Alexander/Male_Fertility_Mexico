@@ -31,7 +31,7 @@ missing <- lapply(data, nr_missing)
 
 missing <- bind_rows(missing)
 
-# 
+# Plot the missing values
 missing_plot <- ggplot(missing, aes(Year, age_mot)) +
   geom_line(aes(col = "Age of Mother"), linewidth = 1.4) +
   geom_line(aes(y = age_fat, col = "Age of Father"), linewidth = 1.4) +
