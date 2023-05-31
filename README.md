@@ -1,10 +1,7 @@
 # Fertility in Mexico from a two-sex perspective
-
-May 2023
-
-# Subnational Birth Squeezes
 This repository contains the files to reproduce the results from the project "Fertility in Mexico from a two-sex perspective" All code on which this analysis is based was written in the [**R**](https://www.r-project.org/) statistical programming language.
 
+May 2023
 
 ## Software and hardware
 The analysis were executed in [**R**](https://www.r-project.org/) version 4.2.1 (2022-06-23 ucrt). The computing unit was platform x86_64-w64-mingw32/x64 (64-bit).
