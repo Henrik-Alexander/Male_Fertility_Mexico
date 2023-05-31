@@ -8,11 +8,38 @@
 ## 1. load_data_MEX   = loads the data for Mexico
 ## 2. unzip_MEX       = unzips the birth data for Mexico
 ## 3. clean_names_MEX = cleans the variable names in the birth data
-## 4. clean_dataa_MEX = cleans the variables in the birth data
-## 5. Impute_mot_age  = impute the age of the mother
-## 6. impute_fat_age  = impute the age of the father
-## 7. 
-## 
+## 4. clean_data_MEX  = cleans the variables in the birth data
+## 5. Impute_variable = conditional approach to imputation
+## 7. impute_unconditional = unconditional approach to imputation
+
+
+### Load the state names -----------------------------------------------
+if(!file.exists("Data/geogr_entities.Rda")){
+  
+  # Set the path
+  website <- "https://en.wikipedia.org/wiki/Administrative_divisions_of_Mexico"
+  
+  # Reading the table
+  website <- read_html(website)
+  
+  # Obtain the pieces of the web page
+  entities <- html_node(page, ".wikitable")
+  
+  # Convert the html table element into a data frame
+  entities <- html_table(entities, fill = TRUE)
+  
+  # Add a number
+  entities$entity <- factor(1:nrow(entities))
+  
+  # Clean the data
+  entities <- clean_names(entities) %>% 
+    rename(entity_name = name_of_federative_entity) %>%
+    select(entity_name, entity)
+  
+  # Save the data
+  save(entities, file = "Data/geogr_entities.Rda")
+}
+
 
 #### Load data for mexico -----------------------------------
 
@@ -66,27 +93,26 @@ unzip_MEX <- function(year){
 
 ### Clean the names ------------------------------------------
 
+## List of variables; number of waves in parantheses
+# Entity of registration (32), municiplaity of registration (32), 
+# age of the mother (32), age of the father (32), year of registration (32), year of occurence, parity(32), live births (32),
+# marital status (32), education of mother (32), education of father (32), activity mother (32), activity father (32)
 
 clean_names_MEX <- function(...){ 
   
   ### Assign 
   dat <- (...)
   
-  ## List of variables; number of waves in parantheses
-  # Entity of registration (32), municiplaity of registration (32), 
-  # age of the mother (32), age of the father (32), year of registration (32), year of occurence, parity(32), live births (32),
-  # marital status (32), education of mother (32), education of father (32), activity mother (32), activity father (32)
-  
   # Make lower case
   dat <- clean_names(dat)
   
   # Filter
-  dat <- subset(dat, select = c(ent_regis, mun_resid, edad_madn, edad_padn, ano_reg, # ano_nac,
+  dat <- subset(dat, select = c(ent_resid, mun_resid, edad_madn, edad_padn, ano_reg, # ano_nac,
                                 orden_part, hijos_vivo, edociv_mad, escol_mad, escol_pad, act_mad, act_pad, year))
   
   # Rename 
   dat <- rename(dat, 
-                entity = ent_regis,
+                entity = ent_resid,
                 mun_res = mun_resid , 
                 age_mot = edad_madn,
                 age_fat = edad_padn, 
@@ -110,73 +136,109 @@ clean_names_MEX <- function(...){
 
 #### Clean the data Mexico ----------------------------------------
 
-
 clean_data_MEX <- function(...){
   
   ### Assign 
   dat <- (...)
   
   # Make numeric
-  dat <- mutate(dat, across(c(age_fat, age_mot, parity), as.integer))
+  dat <- mutate(dat, across(c(age_fat, age_mot, parity, entity), as.integer))
   
   # Recode age as missing
   vars <- c("age_fat", "age_mot", "parity", "live_births", "mun_res")
   dat[, vars] <- sapply(dat[ ,vars], function(x) ifelse(x == 99, NA, x))
   
   # If a birth took place below age 12 recode to age 12
-  dat[dat$age_mot < 12 & !is.na(dat$age_mot), ]$age_mot <- 12
-  dat[dat$age_fat < 12 & !is.na(dat$age_fat), ]$age_fat <- 12
+  try(dat[dat$age_mot < 12 & !is.na(dat$age_mot), ]$age_mot <- 12)
+  try(dat[dat$age_fat < 12 & !is.na(dat$age_fat), ]$age_fat <- 12)
   
   # If a birth takes place at old age
-  dat[dat$age_mot > 49 & !is.na(dat$age_mot), ]$age_mot <- 49
-  dat[dat$age_fat > 59 & !is.na(dat$age_fat), ]$age_fat <- 59
+  try(dat[dat$age_mot > 49 & !is.na(dat$age_mot), ]$age_mot <- 49)
+  try(dat[dat$age_fat > 59 & !is.na(dat$age_fat), ]$age_fat <- 59)
   
   # Recode education and activity
   vars <- c("edu_fat", "edu_mot", "act_fat", "act_mot", "mar_mot")
   dat[, vars] <- sapply(dat[, vars], function(x) ifelse(x == 9, NA, x))
   
-  
   # Recode
   dat$live_births <- ifelse(dat$live_births == 999, NA, dat$live_births)
   
   # Make factor
-  dat <- mutate(dat, across(c(mar_mot, edu_mot, edu_fat, act_mot, act_fat), as.factor))
+  dat <- mutate(dat, across(c(mar_mot, edu_mot, edu_fat, act_mot, act_fat, entity), as.factor))
+  
+  # Join with state names
+  dat <- inner_join(dat, entities, by = "entities")
 }
 
 
-## Write an expand function ----------------------------------------------
-expand <- function(data, variable){
-  var <- data %>% pull({{variable}})
-  tmp <- as.data.frame(lapply(data, rep, round(var, 3) * 100))
+
+
+### Estimate mid-year population ---------------------------------------
+
+mid_year_pop <- function(pop1, pop2){
+  pop <- (pop1 + pop2) / 2
+ return(pop) 
+}
+
+
+#### Impute ------------------------------------------------------------
+
+
+##  Function to impute variable based on another variable
+impute_variable <- function(data = d, outcome = age_mot, predictor = age_fat){
+  
+  # Filter the non-missing data
+  nmiss     <- data %>% filter(!is.na({{outcome}}))
+
+  # Filter the missing data
+  miss      <- data %>% filter(is.na({{outcome}}) & !is.na({{predictor}})) %>% 
+    group_by({{predictor}}) %>% count()
+  
+  # Estimate the conditional distribution
+  cond_dist <- nmiss %>% 
+    filter(!is.na({{predictor}})) %>%
+    group_by({{predictor}}) %>% 
+    mutate(Total = n()) %>% 
+    group_by({{predictor}}, {{outcome}}) %>% 
+    summarise(prob = n() / unique(Total), .groups = "drop") %>% 
+    complete({{predictor}}, {{outcome}}, fill = list(prob = 0))
+  
+  # Join the cond_dist and miss
+  tmp <- left_join(miss, cond_dist)
+
+  # Estimate the imputed births
+  tmp <- tmp %>% mutate(Births = round(n * prob)) %>% 
+    select({{predictor}}, {{outcome}}, Births)
+  
   return(tmp)
-   }
-
-
-#### Write a function for probabilistic imputation -----------------------
-
-impute_mot_age <- function(age, conditional_distribution = cond_age_fat){
-
-  # Assign every data set to the list
-  result <- lapply(age, function(x) subset(conditional_distribution, subset = age_fat == x))
-  
-  # Expand 
-  age_res <- map_dfr(result, .f = function(df) df[sample(1:nrow(df), size = 1, prob = df$prop), ])
-  
-  # Impute value
-  return(age_res$age_mot)
 }
 
+#### Impute uncoditional --------------------------------------------
 
-#### Write a function for probabilistic imputation ----------------------
-
-impute_fat_age <- function(age, conditional_distribution = cond_age_mot){
-
-  # Assign every data set to the list
-  result <- lapply(age, function(x) subset(conditional_distribution, age_mot == x))
+impute_unconditional <- function(data = d, outcome = age_mot){
   
-  # Expand 
-  age_res <- map_dfr(result, .f = function(df) df[sample(1:nrow(df), size = 1, prob = df$prop), ])
+  if(nrow(data) > 0){
   
-  # Impute value
-  return(age_res$age_fat)
+  # Filter the non-missing data
+  cond_dist <- data %>%
+    filter(!is.na({{outcome}})) %>% 
+    mutate(Total = n()) %>% 
+    group_by({{outcome}}) %>% 
+    summarise(prob = n() / unique(Total), .groups = "drop")
+    
+  # Filter the missing data
+  miss      <- data %>% filter(is.na({{outcome}})) %>% count() %>% pull(n)
+  
+  # Estimate the imputed births
+  cond_dist <- cond_dist %>% mutate(Births = round(miss * prob))
+  
+  # Return 
+  return(cond_dist)
+  
+  }else{
+   
+cat("NO data! \n")
+    
+  }
 }
+

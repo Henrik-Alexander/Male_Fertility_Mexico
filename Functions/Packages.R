@@ -17,7 +17,7 @@ library(readxl)
 library(pxweb)
 library(httr)
 library(janitor)
-
-# web screping
+library(parallel)
+library(rvest)
 
 
