@@ -93,15 +93,13 @@
   births_fat <- births_fat %>% mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
                         year   = as.integer(str_split(year, pattern = "\\.", simplify = T)[, 2]))
   
-  # Label the regions
-  births_mot <- left_join(births_mot, entities)
+
   
   # Clean the data
   births_mot <- births_mot %>% mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
                                       year   = as.integer(str_split(year, pattern = "\\.", simplify = T)[, 2]))
   
-  # Label the regions
-  births_mot <- left_join(births_mot, entities)
+
   
 ### Plot the data ------------------------------------------------------
   
@@ -109,13 +107,13 @@
   # Plot females
   ggplot(births_mot, aes(age_mot, births, group = year,  colour = year)) +
     geom_line() +
-    facet_wrap(~ entity_name, scales = "free_y") +
+    facet_wrap(~ entity, scales = "free_y") +
     scale_colour_gradient(low = MPIDRgreen, high =  MPIDRyellow)
   
   # Plot males
   ggplot(births_mot, aes(age_mot, births, group = year, colour = year)) +
     geom_line() +
-    facet_wrap(~ entity_name, scales = "free_y") +
+    facet_wrap(~ entity, scales = "free_y") +
     scale_colour_gradient(low = MPIDRgreen, high =  MPIDRyellow )
   
   # Save the data

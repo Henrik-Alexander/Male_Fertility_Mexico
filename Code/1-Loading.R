@@ -55,5 +55,28 @@
   # Save the data
   save(data, file = "Data/births_complete_MEX.Rda")
 
+### Plot the data -----------------------------------------------------
+  
+  # Missing
+  missing <- data %>% group_by(year) %>% 
+    summarise(age_mot = mean(is.na(age_mot)),
+              age_fat = mean(is.na(age_fat)))
+  
+  
+  data %>% group_by(year) %>% 
+    summarise(NAs = mean(is.na(entity)))
+  
+  # Plot the missing values
+  missing_plot <- ggplot(missing, aes(year, age_mot)) +
+    geom_line(aes(col = "Age of Mother"), linewidth = 1.4) +
+    geom_line(aes(y = age_fat, col = "Age of Father"), linewidth = 1.4) +
+    ylab("Share missing") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 0.2), expand = c(0, 0)) +
+    scale_colour_manual(values = c("Age of Mother" = MPIDRyellow, "Age of Father" = MPIDRgreen)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ggtitle("Share of missing values for 'Age of mother' and 'Age of mother'")
+  
+  ggsave(missing_plot, filename = "Figures/share_missing_sex.pdf")
+  
 
 ##########            END             ##############

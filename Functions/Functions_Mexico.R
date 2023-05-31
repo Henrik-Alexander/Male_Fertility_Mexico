@@ -142,10 +142,10 @@ clean_data_MEX <- function(...){
   dat <- (...)
   
   # Make numeric
-  dat <- mutate(dat, across(c(age_fat, age_mot, parity, entity), as.integer))
+  dat <- mutate(dat, across(c(age_fat, age_mot, parity), as.integer))
   
   # Recode age as missing
-  vars <- c("age_fat", "age_mot", "parity", "live_births", "mun_res")
+  vars <- c("age_fat", "age_mot", "parity", "live_births", "mun_res", "entity")
   dat[, vars] <- sapply(dat[ ,vars], function(x) ifelse(x == 99, NA, x))
   
   # If a birth took place below age 12 recode to age 12
@@ -164,10 +164,16 @@ clean_data_MEX <- function(...){
   dat$live_births <- ifelse(dat$live_births == 999, NA, dat$live_births)
   
   # Make factor
-  dat <- mutate(dat, across(c(mar_mot, edu_mot, edu_fat, act_mot, act_fat, entity), as.factor))
+  dat <- mutate(dat, across(c(mar_mot, edu_mot, edu_fat, act_mot, act_fat), as.factor))
   
-  # Join with state names
-  dat <- inner_join(dat, entities, by = "entities")
+  # State names
+  data$entity <- factor(data$entity, labels = c("Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Coahuila de Zaragoza", 
+    "Colima", "Chiapas",  "Chihuahua", "Distrito Federal", "Durango", "Guanajuato", "Guerrero",  "Hidalgo",
+    "Jalisco", "México","Michoacán de Ocampo", "Morelos","Nayarit","Nuevo León", "Oaxaca", "Puebla", "Querétaro",
+    "Quintana Roo", "San Luis Potosí", "Sinaloa",  "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", 
+    "Veracruz de Ignacio de la Llave", "Yucatán", "Zacatecas", "USA", "Other Latin American Countries", "Andere Länder"))
+  
+  return(dat)
 }
 
 
@@ -207,8 +213,8 @@ impute_variable <- function(data = d, outcome = age_mot, predictor = age_fat){
   tmp <- left_join(miss, cond_dist)
 
   # Estimate the imputed births
-  tmp <- tmp %>% mutate(Births = round(n * prob)) %>% 
-    select({{predictor}}, {{outcome}}, Births)
+  tmp <- tmp %>% mutate(births = round(n * prob)) %>% 
+    select({{predictor}}, {{outcome}},births)
   
   return(tmp)
 }
@@ -230,7 +236,7 @@ impute_unconditional <- function(data = d, outcome = age_mot){
   miss      <- data %>% filter(is.na({{outcome}})) %>% count() %>% pull(n)
   
   # Estimate the imputed births
-  cond_dist <- cond_dist %>% mutate(Births = round(miss * prob))
+  cond_dist <- cond_dist %>% mutate(births = round(miss * prob))
   
   # Return 
   return(cond_dist)
