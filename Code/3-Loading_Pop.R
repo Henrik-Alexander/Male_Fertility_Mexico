@@ -1,10 +1,12 @@
-################################################################################
-#                                                                              #
-#         Max-Planck Institute for Demographic Research                        #
-#               Subnational Birth Squeezes                                     #
-################################################################################
+### Load population data ################################
+# Purpose: Impute missing ages for father and mother    #
+# Author: Henrik-Alexander Schubert                     #
+# E-Mail: schubert@demogr.mpg.de                        #
+# Date: 30th May 2023                                   #
+# Prerequisites: functions                              #
+#########################################################
 
-### Preperations -------------------------------------------------------------
+### Settings - -------------------------------------------------------------
 
 # Load the packages
 source("Functions/Packages.R")

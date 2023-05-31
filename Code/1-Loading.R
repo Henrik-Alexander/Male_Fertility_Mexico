@@ -1,8 +1,12 @@
-################################################################################
-#               Subnational Birth Squeezes                                     #
-################################################################################
+### Load Births #########################################
+# Purpose: raw birth data                               #
+# Author: Henrik-Alexander Schubert                     #
+# E-Mail: schubert@demogr.mpg.de                        #
+# Date: 30th May 2023                                   #
+# Prerequisites: cleaned birth data and functions       #
+#########################################################
 
-### Preperations -------------------------------------------------------------
+### Settings  ----------------------------------------------------------------
 
   # Load the packages
   source("Functions/Packages.R")
@@ -40,7 +44,16 @@
   data <- lapply(data, clean_data_MEX) 
     
   # Save the data
-  if(!file.exists("Data/births_complete_MEX.Rda")) save(data, file = "Data/births_complete_MEX.Rda")
+  names(data) <- years
+  
+  # Select
+  data <- lapply(data, select, c(entity, age_mot, age_fat, year, parity) )
+  
+  # Make a list of regions and years
+  data <- bind_rows(data)
+  
+  # Save the data
+  save(data, file = "Data/births_complete_MEX.Rda")
 
 
 ##########            END             ##############

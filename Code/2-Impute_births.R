@@ -1,72 +1,26 @@
-#################################################################################
-#                       Subnational Birth Squeezs                               #
-#                      Impute and calculate ASFRs                               #
-#################################################################################
+### Impute Births #######################################
+# Purpose: Impute missing ages for father and mother    #
+# Author: Henrik-Alexander Schubert                     #
+# E-Mail: schubert@demogr.mpg.de                        #
+# Date: 30th May 2023                                   #
+# Prerequisites: cleaned birth data and functions       #
+#########################################################
 
 ### Settings ------------------------------------------------------------------
 
-
-## Last edited: 06.12.2021
-
   rm(list = ls())
   
-  # load packages
-  library(reshape2)
-  library(tidyverse)
-  library(data.table)
-  library(usdata)
-  
   # load functions
+  source("Functions/Packages.R")
   source("Functions/Functions.R")
-
-  # Load the data
-  load("Data/births_complete_MEX.Rda")
+  source("Functions/Graphics.R")
 
   # Age range for men and women
   age_m <- 12:59
   age_f <- 12:49
-
-### Extract the missings --------------------------------------------------
   
-# Subset the data
-d <- data[[31]]
-  
-##  Function to impute mother's age
-impute_age_mother <- function(d){}
-  
-
-# Subset the missing
-miss <- subset(d, subset = is.na(age_mot))
-
-# Non missing data
-nmiss <- subset(d, subset = !is.na(age_mot))
-
-# 1. Layer: age_father
-cond_age_fat <- nmiss %>% 
-  filter(!is.na(age_fat)) %>%
-  group_by(age_fat) %>% 
-  mutate(Total = n()) %>% 
-  group_by(age_fat, age_mot) %>% 
-  summarise(prop = n() / unique(Total), .groups = "drop")
-
-# Complete the cases
-cond_age_fat <- complete(cond_age_fat, age_mot, age_fat, fill = list(prop = 0))
-
-
-# Fill the variables
-d %>% mutate(age_mot = if_else(is.na(age_mot) & !is.na(age_fat), impute_mot_age(age = age_fat, cond_age_fat), age_mot))
-
-# Plot the result
-ggplot(cond_age_fat, aes(age_fat, age_mot, fill = prop)) +
-  geom_tile() +
-  scale_fill_gradient(low = "grey", high = "red") + 
-  geom_abline(slope = 1, intercept = 0) +
-  ylab("Age of the mother") + xlab("Age of the mother")
-
-# 2. Layer: parity
-
-  
-  
+  # Years range
+  years <- 1990:2021
 
   
 ### Read data -------------------------------------------------------------
@@ -74,157 +28,98 @@ ggplot(cond_age_fat, aes(age_fat, age_mot, fill = prop)) +
   # Read birth data
   load("Data/births_complete_MEX.Rda")
   
-  # Population counts
-  load("Data/pop_reg_Mex.Rda")
-  pop     <- pop[pop$age%in%11:99,]
+  # Split by year and region
+  data <- split(data, list(data$entity, data$year))
   
-  # Find year range
-  min_year <- max(min(births$year),min(pop$year),na.rm=T)
-  max_year <- min(max(births$year),max(pop$year)-1,na.rm=T)
-  years    <- min_year:max_year
-
-
-
-### Edit age variable ----------------------------------------------------
+### Impute the births -----------------------------------------------------
   
-
-  # Edit age variables: Restrict to age range (women)
-  births$age_of_mother[births$age_of_mother<min(age_f)] <- min(age_f)
-  births$age_of_mother[births$age_of_mother>max(age_f)] <- max(age_f)
+  # Impute mother's age by using father's age
+  d1 <- lapply(data, filter, !is.na(age_fat) )
+  d1 <- lapply(d1, impute_variable, outcome = age_mot, predictor = age_fat)
+  d1 <- bind_rows(d1, .id = "year")
   
-  # Edit age variables: Restrict to age range (men)
-  below <- paste(0:(min(age_m)-1))
-  above <- paste((max(age_m)+1):99)
-  births$age_of_father[births$age_of_father%in% below]  <- min(age_m)
-  births$age_of_father[births$age_of_father%in% above] <- max(age_m)
+  # Impute mother's age by using parity
+  d2 <- lapply(data, filter, is.na(age_fat) & !is.na(parity))
+  d2 <- lapply(d2, impute_variable, outcome = age_mot, predictor = parity)
+  d2 <- bind_rows(d2, .id = "year")
+
+  # Unconditional approach for births with parity and age of father missing
+  d3 <- lapply(data, filter, is.na(age_fat) & is.na(parity))
+  d3 <- lapply(d3, impute_unconditional, age_mot)
+  d3 <- bind_rows(d3, .id = "year")
+  
+  # Get the births with available information
+  d4 <- lapply(data, filter, !is.na(age_mot))
+  d4 <- map(d4, function(x) x %>% group_by(age_mot) %>% summarise(births = n()))
+  d4 <- bind_rows(d4, .id = "year")
+  
+  # Combine the results
+  births_mot <- bind_rows(d1, d2, d3, d4)
   
   # Aggregate
-  agg_formula <- as.formula("count~age_of_mother+age_of_father+year+state")
-  births <- aggregate(agg_formula,data=births,FUN=sum)
+  births_mot <- aggregate(births ~ age_mot + year, data = births_mot, FUN = sum)
   
-  # Edit age of father
-  births$age_of_father <- as.numeric(births$age_of_father)
-
-
-
-### Objects for results #######################################################
+### Impute age of the father ---------------------------------------------
   
-  # Create male template objects
-  f_male             <- matrix(data=0,ncol=length(years),nrow=length(age_m))
-  rownames(f_male)   <- paste(age_m)
-  colnames(f_male)   <- paste(years)
+  # Impute father's age by using mother's age
+  d1 <- lapply(data, filter, !is.na(age_mot) )
+  d1 <- lapply(d1, impute_variable, outcome = age_fat, predictor = age_mot)
+  d1 <- bind_rows(d1, .id = "year")
   
-  # Create female template
-  f_female           <- matrix(data=0,ncol=length(years),nrow=length(age_f))
-  rownames(f_female) <- paste(age_f)
-  colnames(f_female) <- paste(years)
+  # Impute mother's age by using parity
+  d2 <- lapply(data, filter, is.na(age_mot) & !is.na(parity))
+  d2 <- lapply(d2, impute_variable, outcome = age_fat, predictor = parity)
+  d2 <- bind_rows(d2, .id = "year")
   
-  b_male             <- f_male
-  b_female           <- f_female
+  # Unconditional approach for births with parity and age of father missing
+  d3 <- lapply(data, filter, is.na(age_mot) & is.na(parity))
+  d3 <- lapply(d3, impute_unconditional, age_fat)
+  d3 <- bind_rows(d3, .id = "year")
   
-  exposure_female <- f_female
+  # Get the births with available information
+  d4 <- lapply(data, filter, !is.na(age_fat))
+  d4 <- map(d4, function(x) x %>% group_by(age_mot) %>% summarise(births = n()))
+  d4 <- bind_rows(d4, .id = "year")
+  
+  # Combine the results
+  births_fat <- bind_rows(d1, d2, d3, d4)
+  
+  # Aggregate
+  births_fat <- aggregate(births ~ age_fat + year, data = births_fat, FUN = sum)
 
-### Get rates #################################################################
-
-# List of states
-states <- unique(births$state)
-
-# Cycle over states
-for(s in states)  {
+### Clean the data ----------------------------------------------------
   
-  cat("STATE: ",s,"\n")
+  # Clean the data
+  births_fat <- births_fat %>% mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
+                        year   = as.integer(str_split(year, pattern = "\\.", simplify = T)[, 2]))
   
-  # Cycle over years
-  for(i in years) {
-    
-    # Mid-year population count men
-    pop1_m <- pop[pop$year==i&pop$age%in%age_m&pop$state==s&pop$sex==1,c("age","pop")]
-    pop2_m <- pop[pop$year==i+1&pop$age%in%age_m&pop$state==s&pop$sex==1,c("age","pop")]
-    pop_m  <- (pop1_m+pop2_m)/2
-    
-    # Mid-year population count women
-    pop1_f <- pop[pop$year==i&pop$age%in%age_m&pop$state==s&pop$sex==2,c("age","pop")]
-    pop2_f <- pop[pop$year==i+1&pop$age%in%age_m&pop$state==s&pop$sex==2,c("age","pop")]
-    pop_f  <- (pop1_f+pop2_f)/2
-    
-    # Birth counts: Marginals
-    birth_year   <- births[births$year==i&births$state==s,]
-    births_tmp_m <- aggregate(count~age_of_father,data=birth_year,sum)
-    births_tmp_f <- aggregate(count~age_of_mother,data=birth_year,sum)
-    
-    # Births with missing age of father
-    birth_mis      <- births[births$year==i&is.na(births$age_of_father)&births$state==s,]
-    births_tmp_fna <- aggregate(count~age_of_mother,data=birth_mis,sum)
-    
-    # Ages of mother with births with missing age of father
-    missing_age <- unique(births_tmp_fna$age_of_mother)
-    
-    # Distribute missing values: Loop over ages of mother
-    for(j in missing_age) {
-      
-      # Fall-back option: If no births with age of father
-      # then impute age of father as age of mother plus 3
-      all_missing <- birth_year[birth_year$age_of_mother==j,"age_of_father"]
-      all_missing <- all(is.na(all_missing))
-      
-      # If all missing: Create artificial counts
-      if(all_missing) {
-        
-        fathers <- data.frame(count=births_tmp_fna[births_tmp_fna$age_of_mother==j,"count"],age_of_father=j+3)
-        
-        # If not all missing: Get counts          
-      } else {
-        
-        fathers <- aggregate(count~age_of_father,data=birth_year[birth_year$age_of_mother==j,],sum)
-        
-      }
-      
-      # Calculate distribution for imputation
-      fathers$count                       <- fathers$count/sum(fathers$count)
-      # Where to add missing births in current distribution
-      matching_ages                       <- match(fathers$age_of_father,births_tmp_m$age_of_father)
-      # How many to add in current distribution
-      distr_tmp                           <- births_tmp_fna[births_tmp_fna$age_of_mother==j,"count"]*fathers$count
-      # Add to current distribution
-      births_tmp_m[matching_ages,"count"] <- births_tmp_m[matching_ages,"count"]+distr_tmp
-      
-    }
-    
-    # Match ages of population counts and births
-    popmatch_m <- !is.na(match(pop_m$age,births_tmp_m$age_of_father))
-    popmatch_f <- !is.na(match(pop_f$age,births_tmp_f$age_of_mother))
-    
-    # Birth counts
-    b_female[paste(age_f[popmatch_f]),paste(i)] <- births_tmp_f$count
-    b_male[paste(age_m[popmatch_m]),paste(i)]   <- births_tmp_m$count
-    
-    # ASFRs
-    f_female[paste(age_f[popmatch_f]),paste(i)] <- births_tmp_f$count/pop_f[popmatch_f,"pop"]
-    f_male[paste(age_m[popmatch_m]),paste(i)]   <- births_tmp_m$count/pop_m[popmatch_m,"pop"]
-    
-    
-    # exposure
-    exposure_female[paste(age_f[popmatch_f]),paste(i)] <- pop_f[popmatch_f, "pop"]
-    
-    
-  }
+  # Label the regions
+  births_mot <- left_join(births_mot, entities)
   
-  # Assign results
-  assign(paste0("f_male_",s),f_male)
-  assign(paste0("f_female_",s),f_female)
-  assign(paste0("b_male_",s),b_male)
-  assign(paste0("b_female_",s),b_female)
-  assign(paste0("exposure.", s), exposure_female)
+  # Clean the data
+  births_mot <- births_mot %>% mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
+                                      year   = as.integer(str_split(year, pattern = "\\.", simplify = T)[, 2]))
   
-}
-
-# Save
-tosave <- c(paste0("f_male_",1:51),
-            paste0("f_female_",1:51),
-            paste0("b_male_",1:51),
-            paste0("b_female_",1:51),
-            paste0("exposure.", 1:51))
-save(list=tosave,file=("Data/US_states_ASFR.rda"))  
-
-
+  # Label the regions
+  births_mot <- left_join(births_mot, entities)
+  
+### Plot the data ------------------------------------------------------
+  
+  
+  # Plot females
+  ggplot(births_mot, aes(age_mot, births, group = year,  colour = year)) +
+    geom_line() +
+    facet_wrap(~ entity_name, scales = "free_y") +
+    scale_colour_gradient(low = MPIDRgreen, high =  MPIDRyellow)
+  
+  # Plot males
+  ggplot(births_mot, aes(age_mot, births, group = year, colour = year)) +
+    geom_line() +
+    facet_wrap(~ entity_name, scales = "free_y") +
+    scale_colour_gradient(low = MPIDRgreen, high =  MPIDRyellow )
+  
+  # Save the data
+  save(births_fat, file = "Data/births_father.Rda")
+  save(births_mot, file = "Data/births_mother.Rda")
+  
 ### END ########################################################################  
