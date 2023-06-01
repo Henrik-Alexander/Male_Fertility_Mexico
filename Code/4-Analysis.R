@@ -100,4 +100,19 @@ male_female_asfr %>%
   ylab("Age-specific fertility rate") +
   xlab("Age")
 
+
+### Plot the distribution over time
+
+male_female_TFR %>% 
+  pivot_longer(cols = starts_with("tfr"), names_prefix = "tfr_", values_to = "tfr", names_to = "sex") %>% 
+  filter(sex != "TFR_ratio") %>% 
+  ggplot(aes(as.factor(year), tfr, fill = sex)) +
+  scale_fill_manual(values = c( MPIDRred, MPIDRblue), name = "Sex:") +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = c(0.8, 0.8)) +
+  ylab("Total fertility rate") +
+  xlab("Year")
+
+
 ### END ########################################################################  
