@@ -19,5 +19,8 @@ library(httr)
 library(janitor)
 library(parallel)
 library(rvest)
-
+library(sf)
+library(ggspatial)
+library(rnaturalearth)
+library(rnaturalearthdata)
 

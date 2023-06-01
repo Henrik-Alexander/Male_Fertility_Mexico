@@ -13,6 +13,10 @@
 ## 7. impute_unconditional = unconditional approach to imputation
 
 
+### Set the encoding ---------------------------------------------------
+
+#Sys.setlocale("LC_ALL", "ES_ES.UTF-8")
+
 ### Load the state names -----------------------------------------------
 if(!file.exists("Data/geogr_entities.Rda")){
   
@@ -166,18 +170,20 @@ clean_data_MEX <- function(...){
   # Make factor
   dat <- mutate(dat, across(c(mar_mot, edu_mot, edu_fat, act_mot, act_fat), as.factor))
   
-  # State names
-  data$entity <- factor(data$entity, labels = c("Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Coahuila de Zaragoza", 
-    "Colima", "Chiapas",  "Chihuahua", "Distrito Federal", "Durango", "Guanajuato", "Guerrero",  "Hidalgo",
-    "Jalisco", "México","Michoacán de Ocampo", "Morelos","Nayarit","Nuevo León", "Oaxaca", "Puebla", "Querétaro",
-    "Quintana Roo", "San Luis Potosí", "Sinaloa",  "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", 
-    "Veracruz de Ignacio de la Llave", "Yucatán", "Zacatecas", "USA", "Other Latin American Countries", "Andere Länder"))
   
   return(dat)
 }
 
+### Change the coding of entities --------------------------------------
 
-
+# State names
+#data$entity <- factor(data$entity, 
+#                      labels = c("Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Coahuila de Zaragoza", 
+#                                "Colima", "Chiapas",  "Chihuahua", "Distrito Federal", "Durango", "Guanajuato", "Guerrero",  "Hidalgo",
+#                                "Jalisco", "México","Michoacán de Ocampo", "Morelos","Nayarit","Nuevo León", "Oaxaca", "Puebla", "Querétaro",
+#                                "Quintana Roo", "San Luis Potosí", "Sinaloa",  "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", 
+#
+#                              "Veracruz de Ignacio de la Llave", "Yucatán", "Zacatecas", "USA", "Other Latin American Countries", "Other countries"))
 
 ### Estimate mid-year population ---------------------------------------
 

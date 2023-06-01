@@ -13,7 +13,6 @@ source("Functions/Packages.R")
 source("Functions/Graphics.R")
 source("Functions/Functions.R")
 
-
 # Dimensions 
 years <- 1990:2021
 ages <- 15:55
@@ -21,17 +20,22 @@ ages <- 15:55
 ### Loading the population data -------------------------------------------
 
 # Open the files
-pop <- read.csv("Raw/pob_mit_proyecciones.csv")
+pop <-fread("Raw/pob_mit_proyecciones.csv", encoding = "Latin-1")
 
 # Rename
 names(pop) <- c("id", "year", "entity", "geo_code", "age", "sex", "population")
 
+# Harmonize the state names
+pop <- pop %>% mutate(geo_code = factor(geo_code),
+                      entity = case_when(entity == "Coahuila"  ~ "Coahuila de Zaragoza",
+                                  entity == "Michoacán" ~ "Michoacán de Ocampo",
+                                  entity == "Veracruz"  ~ "Veracruz de Ignacio de la Llave",
+                                  entity %!in% c("Coahuila", "Michoacán", "Veracruz") ~ entity))
 
 # Estimate the lag value
 pop <- pop %>%
   group_by(entity, age, sex) %>%
   mutate(lag_pop = lag(population, order_by = year), 
-         lag_year = lag(year, order_by = year),
          mid_year_pop = (lag_pop + population) / 2) %>% 
   ungroup()
 

@@ -37,13 +37,35 @@ This work would not have been possible with the scientific and programming contr
 ## Directory structure:
 The structure of the repository is as follows:
 
-*   `\Code`: This folder contains all script files
-*   `\Data`: This folder contains all data that was created in the code  
-*   `\Raw_data`: This folder contains the raw, unmanipulated data
-*   `\Figures`: This folder contains all the created figures
-*   `\Results`: This folder includes tabular outputs
-*   `\Functions`: This folder contains all the functions used in the code 
-*   `\meta_file.R`: This script calls all the scripts. 
+```
+.
+├-- .gitignore
+├-- Code
+│   ├── 1-Loading.R		       <- Loads the birth data
+│   ├── 2-Imptue_births.R    <- Imputes the age of the mother and father
+│   ├── 3-Loading_Pop.R      <- Loads the population data
+│   ├── 4-Analysis.R         <- Estimates rates and makes the analysis
+│   ├── 5-SpatialAnalysis.R  <- Makes a spatial analyis
+├-- Data
+├-- Figures
+├-- Raw
+│   ├── Poblacion_01.xlsx
+│   ├── Shape
+│	        └── 00ent.cpg
+│	        └── 00ent.dbf
+│	        └── 00ent.prj
+│	        └── 00ent.shp
+│	        └── 00ent.shx
+├-- Functions
+│   ├── Packages.R		       <- Installs and loads the packages
+│   ├── Graphics.R           <- Sets the graphic style
+│   ├── Functions.R          <- Installs the functions
+├-- Handbooks
+├-- Results
+├-- Readme.md
+└── Meta.R		   <- Runs the entire project
+
+```
 
 
 ### Raw:

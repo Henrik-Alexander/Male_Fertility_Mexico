@@ -5,12 +5,15 @@
 source("Code/1-Loading.R")
 
 # 2. Impute the births
-#source("Code/2-Impute_births.R")
+source("Code/2-Impute_births.R")
 
 # 3. Load the population data
 source("Code/3-Loading_Pop.R")
 
 # 4. Analysis
-source("Code/3-Analysis.R")
+source("Code/4-Analysis.R")
+
+# 5. Spatial analysis
+source("Code/5-SpatialAnalysis.R")
 
 

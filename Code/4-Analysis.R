@@ -16,30 +16,48 @@ source("Functions/Graphics.R")
 source("Functions/Functions.R")
 
 # Load the data
-load("Data/births_complete_MEX.Rda")
+load("Data/births_father.Rda")
+load("Data/births_mother.Rda")
+load("Data/exposure_females.Rda")
+load("Data/exposure_males.Rda")
 
-### Data analysis ------------------------------------------------------------
 
-# Function to get the missing values
-nr_missing <- function(data){
-  miss <- colMeans(is.na(data))
-  miss$Year <- unique(data$year)
-  return(miss)
-}
+### Estimate the rates -------------------------------------------------------
 
-# Estimate
-missing <- lapply(data, nr_missing)
+# Merge 
+males <- inner_join(births_fat, pop_f, by = c("year", "age_fat" = "age", "entity" = "geo_code"))
 
-# Combine the missing values
-missing <- bind_rows(missing)
+# Estimate the ASFR
+asfr_m <- males %>% mutate(asfr_m = births / mid_year_pop)
 
-# Plot the missing values
-missing_plot <- ggplot(missing, aes(Year, age_mot)) +
-  geom_line(aes(col = "Age of Mother"), linewidth = 1.4) +
-  geom_line(aes(y = age_fat, col = "Age of Father"), linewidth = 1.4) +
-  ylab("Share missing") +
-  scale_y_continuous(labels = scales::percent, limits = c(0, 0.2), expand = c(0, 0)) +
-  scale_colour_manual(values = c("Age of Mother" = MPIDRyellow, "Age of Father" = MPIDRgreen)) +
-  ggtitle("Share of missing values for 'Age of mother' and 'Age of mother'")
+# Estimate the TFR
+tfr_m <- asfr_m %>% summarise(tfr_m = sum(asfr_m), .by = c(year, entity))
 
-ggsave(missing_plot, filename = "Figures/share_missing_sex.pdf")
+## Do the same for females --------------------------------------------------
+
+# Merge 
+females <- inner_join(births_mot, pop_f, by = c("year", "age_mot" = "age", "entity" = "geo_code"))
+
+# Estimate the ASFR
+asfr_f <- females %>% mutate(asfr_f = births / mid_year_pop)
+
+# Estimate the TFR
+tfr_f <- asfr_f %>% summarise(tfr_f = sum(asfr_f), .by = c(year, entity))
+
+
+### JOin the data ---------------------------------------------------------
+
+### Compare
+left_join(asfr_f, asfr_m, by = c("age_mot" = "age_fat", "year", "entity"), suffix = c("_f", "_m")) %>% 
+  filter(entity == 2) %>% 
+  ggplot(aes(x = age_mot)) +
+  geom_line(aes(y = births_f), col = "red") +
+  geom_line(aes(y = births_m), col = "blue") +
+  facet_wrap(~ year)
+
+
+# Join male and female TFR+
+male_female_TFR <- inner_join(tfr_m, tfr_f)
+
+
+### END ########################################################################  

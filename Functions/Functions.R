@@ -9,7 +9,7 @@ for(f in c("Data", "Results", "Figures")) {
 
 #### Negate in function -------------------------------------
 
-#`%!in%` <- negate(`%in%`)
+`%!in%` <- Negate(`%in%`)
 
 
 #### Tabulate function --------------------------------------

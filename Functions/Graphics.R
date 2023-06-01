@@ -19,12 +19,13 @@ theme_update(plot.margin = margin(0.1, 0.6, 0.1, 0.1, "cm"),
              panel.grid.minor.y = element_blank(),
              legend.background = element_rect(fill = "white"),
              legend.title = element_text(face = "bold"),
-             axis.title.x = element_text(face = "bold", size = 14),
              legend.position = "bottom",
+             legend.key.width = unit(2, "cm"),
+             legend.key.height = unit(0.2, "cm"),
+             axis.title.x = element_text(face = "bold", size = 14),
              axis.title.y = element_text(face = "bold", size = 14),
              plot.title = element_text(hjust = 0.5),
              title = element_text(face = "bold")
-             
 )
 
 
