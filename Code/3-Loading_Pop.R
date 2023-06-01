@@ -51,4 +51,4 @@ pop_m <- pop %>% filter(sex == "Hombres" & geo_code != 0) %>% select(-sex, -id)
 save(pop_f, file = "Data/exposure_females.Rda")
 save(pop_m, file = "Data/exposure_males.Rda")
 
-##########            END             ##############
+### END ########################################################################  

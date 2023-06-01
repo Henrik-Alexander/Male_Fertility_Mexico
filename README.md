@@ -30,9 +30,6 @@ This work would not have been possible with the scientific and programming contr
 - [`ggrepel`](https://cran.r-project.org/web/packages/ggrepel/vignettes/ggrepel.html) by Kamil Slowikowski
 - [`bea.R`](https://cran.r-project.org/web/packages/bea.R/bea.R.pdf) by Andrea Batch
 
-## Reproduction Procedures
-
-
 
 ## Directory structure:
 The structure of the repository is as follows:
@@ -67,8 +64,3 @@ The structure of the repository is as follows:
 
 ```
 
-
-### Raw:
-### Functions: 
-The subdirectory Functions should contain an R file called `~ /Functions/Functions.R`
-# Subnational_birth_squeezes
