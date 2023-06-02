@@ -17,6 +17,9 @@ source("Functions/Functions.R")
 years <- 1990:2021
 ages <- 15:55
 
+# Data:
+# https://www.gob.mx/conapo/acciones-y-programas/conciliacion-demografica-de-mexico-1950-2015-y-proyecciones-de-la-poblacion-de-mexico-y-de-las-entidades-federativas-2016-2050
+
 ### Loading the population data -------------------------------------------
 
 # Open the files

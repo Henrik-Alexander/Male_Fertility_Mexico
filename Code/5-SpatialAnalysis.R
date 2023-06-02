@@ -89,7 +89,7 @@ plot_panel_ratio <- male_female_TFR %>%
     geom_sf() +
     facet_wrap(~ year, ncol = 2) +
     scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 1, name = "TFR men / TFR women:") +
-    ggtitle("Birth squeezs in the states of Mexico") +
+    ggtitle("Birth squeezes in the states of Mexico") +
     annotation_scale(location = "bl", width_hint = 0.2) + 
     annotation_north_arrow(location = "bl", pad_x = unit(0.25, "in"), pad_y = unit(0.5, "in"), which_north = "true", style = north_arrow_fancy_orienteering) +
     theme(panel.background =  element_rect(fill = "aliceblue"),

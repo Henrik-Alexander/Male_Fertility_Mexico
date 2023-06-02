@@ -1,0 +1,226 @@
+---
+title: "Male-Female Fertility. A stable population"
+author: "Henrik-Alexander Schubert"
+date: "2023-06-02"
+output: html_document
+bibliography: U:/male fertility/Male_Fertility_Mexico/Text/references.bib
+abstract: "In 2019, a paper by Bruno Schoumaker was published on male fertility around the world. The key messages of the paper are that 1) fertility of men differed from the fertility of women, 2) that the lower the fertility level, the larger the male fertiltiy exceeds the levels for females, and 3) that the ratio of male-to-female TFR can be approximated in stable-population estimation. This file documents the estimation of the Schoumaker-equation for Mexico. Harnessing vital statistics data from INEGI and mortality data from the United Nations, this project analyses the stable-population approximation of the male-to-female fertilitiy ratio."
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+### Settings -----------------------------------------------------------------
+
+# Set the working directory
+setwd("U:/male fertility/Male_Fertility_Mexico")
+
+# Load the packages
+source("Functions/Packages.R")
+source("Functions/Graphics.R")
+source("Functions/Functions.R")
+```
+
+## Data wrangling
+
+First, the data needs to be loaded. Harnessing the United Nations World Population Prospects from 2023, which provides age-specific death rates. The data can be accessed under [United Nations](https://population.un.org/wpp/).
+
+```{r lifetables}
+# Load the mortality data
+mortality <- fread("Raw/mortality_mexico_un.csv")
+
+# Clean the names
+mortality <- mortality %>%
+  clean_names() %>% 
+  select(indicator_short_name, time, author, location, sex, age, value) %>% 
+  mutate(age = as.integer(str_remove_all(age, "\\+")))
+
+# Split the data
+mx <- split(mortality$value,list(mortality$time, mortality$sex))
+
+# Estimate the lifetables
+lifetables <- lapply(mx, lifetable, sex = "M")
+
+# Combine the lifetables
+lifetables <- bind_rows(lifetables, .id = "id")
+
+# Get the names
+lifetables <- lifetables %>%
+  mutate(sex = as.factor(str_split(id, pattern = "\\.", simplify = T)[, 2]), 
+                        year   = as.integer(str_split(id, pattern = "\\.", simplify = T)[, 1])) %>% 
+  select(-id)
+
+
+# Plot the lifetable survivors for men and women over time
+ggplot(lifetables, aes(age, lx, alpha = year / max(year), colour = sex, group = year)) +
+  geom_line() +
+  facet_wrap(~ sex) +
+  scale_y_continuous(expand = c(0, 0)) +
+  guides(alpha = "none")
+```
+
+## Schoumaker paper
+
+In his paper, @schoumaker_male_2019 describes male fertility around the world. The key messages of the paper are that 1) fertility of men differed from the fertility of women, 2) that the lower the fertility level, the larger the male fertility exceeds the levels for females, and 3) that the ratio of male-to-female TFR can be approximated in stable-population estimation.
+
+In his paper, he approximates the male-to-female fertility ratio using *stable population theory*.
+
+$$
+\frac{TFR_{m}}{TFR_{f}} = \frac{1} {SRB}  \cdot \frac{p(MAC)_{m}} {p(MAC)_{f}}  \cdot exp(r \cdot (T_m - T_f))
+$$
+
+
+Where $SRB$ is the sex ratio at birth, which can be approximated by 105, $p(MAC)$ is the probability to survive until the mean age of childbearing, $r$ is the population growth rate, and $T$ is the mean generation length.
+
+The estimation can be transformed into the following function.
+
+```{r schoumaker-ratio}
+# Schoumaker function
+schoumaker <- function(SRB = 1.05, pMAC, pMAF, r = 1, TM, TF){
+  tmp <- 1 / SRB * pMAC / pMAF * exp(r * (TM - TF))
+  return(tmp)
+}
+```
+
+### Estimate the mean generation length
+
+In order to estimate the mean generation length, we use the formula from (@keyfitz_applied_2005, p. 264):
+
+$$\mu_1 = \frac{\sum_x x(\prod_{j=1}^{x-1} P_j) F_x}{\sum_x (\prod_{j=1}^{x-1} P_j) F_x} $$
+
+Which can be transformed into the following function `generation_length`:
+
+```{r}
+# Estimate the mean lenght of generation
+generation_length <- function(x, px, asfr){
+  gen_len <- sum(x * px * asfr) / sum(px * asfr)
+  return(gen_len)
+}
+
+
+# Estimate it for the lifetables
+px <- lifetables %>% select(age, px, sex, year)
+
+# Merge with the fertility rates
+load("Data/asfr_national_mexico.Rda")
+
+# Pivot wider
+px <- pivot_wider(px, values_from = "px", names_from = "sex")
+
+# JOin the data
+mor_fer <- inner_join(px, asfr_national, by = c("year", "age" = "age_mot")) 
+
+# Estimate the generation length
+gen_length <- mor_fer %>% 
+  group_by(year) %>% 
+  summarise(gen_len_m = sum(age * cumprod(Male) * asfr_m) / sum(cumprod(Male) * asfr_m),
+            gen_len_f = sum(age * cumprod(Female) * asfr_f) / sum(cumprod(Female) * asfr_f))
+
+# Plot the generation length
+ggplot(gen_length, aes(x = year)) +
+  geom_line(aes(y = gen_len_f, colour = "females"), linewidth = 1.4) +
+  geom_line(aes(y = gen_len_m, colour = "males"), linewidth = 1.4) +
+  scale_colour_manual(name = "Sex:", values = c(MPIDRred, MPIDRblue)) +
+  ylab("Mean generation length") + xlab("Year")
+
+```
+
+### Estimate the growth rate
+
+One part of the stable population theory is the population growth rate: $r$. In this case, we estimate the *Net Reproduction Rate*, which is defined as the number of offspring a person is producing during the lifetime. The formula is:
+
+$$
+r = \sum_{x = 1}^{50} f(x)_f  \cdot \frac{L(x)}{l_0}
+$$
+
+Here, $f(x)_f$ is the number of female births a women at age $x$ produces on average. We approximate this value by multiplying the age-specific fertility rate $f(x)$ with the share of female births, which is 0.4886.
+
+```{r}
+# Get the lifetables
+lifetables_f <- lifetables %>% filter(sex == "Female")
+
+# Join with fertility data
+mor_fer <- inner_join(lifetables_f,asfr_national, by = c("year", "age" = "age_mot")) 
+
+# Estimate the growth rate
+growth_rate <- mor_fer %>% filter(year %in% 1990:2021) %>% 
+  mutate(asfr_f = if_else(is.na(asfr_f), 0, asfr_f)) %>% 
+                                    group_by(year) %>% 
+           summarise(r = sum((asfr_f*0.4886)*Lx/100000))
+
+# Plot the growth rate
+ggplot(growth_rate, aes(year, r)) + 
+  geom_hline(yintercept = 1, colour = "firebrick") +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(n.breaks = 10) +
+  ylab("Net reproductive rate") + xlab("Year")
+```
+
+### Mean age of childbearing
+
+The last component is the *mean age of childbearing* for men and for women. According to @preston_demography_2008, it can be estimated by:
+
+$$
+A = \frac{\sum_{x=12}^{50} x \cdot f(x)}{\sum_{x=12}^{50} f(x)}
+$$
+
+In `R`, we estimate the *mean age of childbearing* in the following way:
+
+```{r}
+# Join the data
+mean_age <- asfr_national %>% group_by(year) %>% 
+summarise(mac_f = sum(age_mot * asfr_f)/ sum(asfr_f),
+          mac_m = sum(age_mot * asfr_m)/ sum(asfr_m), 
+          difference =  mac_m - mac_f)
+
+# Plot the development of the mean age of childbering
+ggplot(mean_age, aes(x = year)) +
+  geom_line(aes(y = mac_f, colour = "females"), linewidth = 1.4) +
+  geom_line(aes(y = mac_m, colour = "males"), linewidth = 1.4) +
+  scale_colour_manual(name = "Sex:", values = c(MPIDRred, MPIDRblue)) +
+  ylab("Mean age of childbearing") + xlab("Year")
+```
+
+We estimated the mean age of childbearing in order to obtain the probability of living until the that age. Thus, in the next step, we combine life table estimates with the mean age.
+
+```{r}
+# Combine the data
+surv_mean_age <- inner_join(lifetables, mean_age, by = c("year")) %>%
+  mutate(across(c(mac_f, mac_m), round)) %>% 
+  filter((age == mac_f & sex == "Female") | (age == mac_f & sex == "Male")) %>% 
+  select(px, year, age, sex) %>% pivot_wider(names_from = "sex", values_from = "px", names_prefix =  "surv_")
+```
+
+
+## Estimation
+Now, that we have all components to estimate the male-to-female TFR ratio in a stable population, we just insert all components.
+
+```{r}
+# Combine all the data
+head(surv_mean_age)
+head(growth_rate)
+head(gen_length)
+
+# Join the data
+data <- inner_join(surv_mean_age, growth_rate) %>% inner_join(., gen_length)
+
+# Estimate Schoumakers ratio
+data <- data %>% mutate(survior_ratio = surv_Male / surv_Female,
+                gen_diff = gen_len_m - gen_len_f,
+                male_female_tfr = 1 / 105 * survior_ratio * exp(r * (gen_diff)))
+
+# Plot the result
+ggplot(data, aes(x = year, y = male_female_tfr)) +
+  geom_line(aes(linetype = "stable population"), size = 1.4) +
+  geom_line(data = tfr_national, aes(y = TFR_m / TFR_f, linetype = "observed"), size = 1.4) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_linetype_manual(name = "Estimation:", values = c("solid", "dashed")) +
+  theme(legend.position = c(0.8, 0.9))
+
+
+```
+
+$$
+\frac{TFR_{m}}{TFR_{f}} = \frac{1} {SRB}  \cdot \frac{p(MAC)_{m}} {p(MAC)_{f}}  \cdot exp(r \cdot (T_m - T_f))
+$$
