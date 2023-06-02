@@ -1,8 +1,9 @@
 ---
-title: "Male-Female Fertilityj Differences. A stable population approach"
+title: "Male-Female Fertility Differences"
+subtitle: "A stable population approach"
 author: "Henrik-Alexander Schubert"
 date: "2023-06-02"
-output: html_document
+output: pdf_document
 bibliography: U:/male fertility/Male_Fertility_Mexico/Text/references.bib
 abstract: "In 2019, a paper by Bruno Schoumaker was published on male fertility around the world. The key messages of the paper are that 1) the fertility of men can differ substantially from the fertility of women, 2) that the lower the fertility level, the more exceeds the male fertiltiy the levels for females, and 3) that the ratio of male-to-female TFR can be approximated in stable-population estimation. This file uses the stable populatin theory proposed by Schoumaker and examines the relationship between male and female  fertiltiy for Mexico. Harnessing vital statistics data from INEGI and mortality data from the United Nations, this project analyses the stable-population approximation of the male-to-female fertilitiy ratio."
 editor_options: 
