@@ -58,9 +58,15 @@ The structure of the repository is as follows:
 │   ├── Graphics.R           <- Sets the graphic style
 │   ├── Functions.R          <- Installs the functions
 ├-- Handbooks
+├-- StablePopulationTheory
+│   ├── Schoumaker.html
+│   ├── Schoumaker.Rmd
 ├-- Results
 ├-- Readme.md
 └── Meta.R		   <- Runs the entire project
 
 ```
 
+
+### Stable Population Theory
+In the folder "StablePopulationTheory", I use the the theory outlined by Schoumaker (2019) to investigate the different contributions of fertility, mortality and sex ratio at birth on the development of birth squeezes.
