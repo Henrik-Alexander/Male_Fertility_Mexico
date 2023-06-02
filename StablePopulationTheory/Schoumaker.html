@@ -734,11 +734,11 @@ head(surv_mean_age) %&gt;% pander()</code></pre>
 </tr>
 </tbody>
 </table>
-<pre class="r"><code># Join the data
-data &lt;- inner_join(surv_mean_age, growth_rate) %&gt;% inner_join(., gen_length)</code></pre>
-<pre><code>## Joining with `by = join_by(year)`
-## Joining with `by = join_by(year)`</code></pre>
-<pre class="r"><code># Estimate Schoumakers ratio
+<pre class="r"><code># Merge the data
+data &lt;- inner_join(surv_mean_age, growth_rate, by = &quot;year&quot;) %&gt;% 
+  inner_join(., gen_length, by = &quot;year&quot;)
+
+# Estimate Schoumakers ratio
 data &lt;- data %&gt;% mutate(survivor_ratio = surv_Male / surv_Female,
                 gen_diff = gen_len_m - gen_len_f,
                 male_female_tfr = 1 / 105 * survivor_ratio * exp(r * (gen_diff)))

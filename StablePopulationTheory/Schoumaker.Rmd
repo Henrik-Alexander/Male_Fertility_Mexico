@@ -205,8 +205,9 @@ head(surv_mean_age) %>% pander()
 head(growth_rate) %>% pander()
 head(gen_length) %>% pander()
 
-# Join the data
-data <- inner_join(surv_mean_age, growth_rate) %>% inner_join(., gen_length)
+# Merge the data
+data <- inner_join(surv_mean_age, growth_rate, by = "year") %>% 
+  inner_join(., gen_length, by = "year")
 
 # Estimate Schoumakers ratio
 data <- data %>% mutate(survivor_ratio = surv_Male / surv_Female,
