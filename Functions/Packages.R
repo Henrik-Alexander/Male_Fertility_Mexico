@@ -23,4 +23,5 @@ library(sf)
 library(ggspatial)
 library(rnaturalearth)
 library(rnaturalearthdata)
-
+library(HMDHFDplus)
+library(pander)

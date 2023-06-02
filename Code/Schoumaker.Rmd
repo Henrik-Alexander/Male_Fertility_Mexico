@@ -1,14 +1,16 @@
 ---
-title: "Male-Female Fertility. A stable population"
+title: "Male-Female Fertilityj Differences. A stable population approach"
 author: "Henrik-Alexander Schubert"
 date: "2023-06-02"
 output: html_document
 bibliography: U:/male fertility/Male_Fertility_Mexico/Text/references.bib
-abstract: "In 2019, a paper by Bruno Schoumaker was published on male fertility around the world. The key messages of the paper are that 1) fertility of men differed from the fertility of women, 2) that the lower the fertility level, the larger the male fertiltiy exceeds the levels for females, and 3) that the ratio of male-to-female TFR can be approximated in stable-population estimation. This file documents the estimation of the Schoumaker-equation for Mexico. Harnessing vital statistics data from INEGI and mortality data from the United Nations, this project analyses the stable-population approximation of the male-to-female fertilitiy ratio."
+abstract: "In 2019, a paper by Bruno Schoumaker was published on male fertility around the world. The key messages of the paper are that 1) the fertility of men can differ substantially from the fertility of women, 2) that the lower the fertility level, the more exceeds the male fertiltiy the levels for females, and 3) that the ratio of male-to-female TFR can be approximated in stable-population estimation. This file uses the stable populatin theory proposed by Schoumaker and examines the relationship between male and female  fertiltiy for Mexico. Harnessing vital statistics data from INEGI and mortality data from the United Nations, this project analyses the stable-population approximation of the male-to-female fertilitiy ratio."
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
 
 ### Settings -----------------------------------------------------------------
 
@@ -69,8 +71,7 @@ $$
 \frac{TFR_{m}}{TFR_{f}} = \frac{1} {SRB}  \cdot \frac{p(MAC)_{m}} {p(MAC)_{f}}  \cdot exp(r \cdot (T_m - T_f))
 $$
 
-
-Where $SRB$ is the sex ratio at birth, which can be approximated by 105, $p(MAC)$ is the probability to survive until the mean age of childbearing, $r$ is the population growth rate, and $T$ is the mean generation length.
+Where $SRB$ is the sex ratio at birth, which can be approximated by 105, $p(MAC)$ is the probability to survive until the mean age of childbearing, $r$ is the population growth rate, and $T$ is the mean generation length. The subsequent sections show the estimation of the different components and describes also the data. 
 
 The estimation can be transformed into the following function.
 
@@ -103,6 +104,7 @@ px <- lifetables %>% select(age, px, sex, year)
 
 # Merge with the fertility rates
 load("Data/asfr_national_mexico.Rda")
+load("Data/tfr_national_mexico.Rda")
 
 # Pivot wider
 px <- pivot_wider(px, values_from = "px", names_from = "sex")
@@ -190,37 +192,56 @@ surv_mean_age <- inner_join(lifetables, mean_age, by = c("year")) %>%
   mutate(across(c(mac_f, mac_m), round)) %>% 
   filter((age == mac_f & sex == "Female") | (age == mac_f & sex == "Male")) %>% 
   select(px, year, age, sex) %>% pivot_wider(names_from = "sex", values_from = "px", names_prefix =  "surv_")
+
 ```
 
-
 ## Estimation
-Now, that we have all components to estimate the male-to-female TFR ratio in a stable population, we just insert all components.
 
-```{r}
+Now, that we have all components to estimate the male-to-female TFR ratio in a stable population, we just insert all components. Figure @figure-ratio shows the time-series for the observed male-to--female TFR ratio against the value from stable population theory. We see that the trends are similar in terms of direction, as both curves decline with time. However, the level of the two curves is very different. The observed ratio starts in 1990 with a value of `r round(tfr_national[tfr_national$year == 1990, ]$TFR_m / tfr_national[tfr_national$year == 1990, ]$TFR_f, 2)` and declines subsequently towards `r round(tfr_national[tfr_national$year == 2021, ]$TFR_m / tfr_national[tfr_national$year == 2021, ]$TFR_f, 2)`. Thus, throughout time, the male TFR exceeds the female TFR. In contrast, for the time series derived from stable population theory, the ratio is in year 1990 above 3 and declines almost to 0. 
+
+```{r ratio}
 # Combine all the data
-head(surv_mean_age)
-head(growth_rate)
-head(gen_length)
+head(surv_mean_age) %>% pander()
+head(growth_rate) %>% pander()
+head(gen_length) %>% pander()
 
 # Join the data
 data <- inner_join(surv_mean_age, growth_rate) %>% inner_join(., gen_length)
 
 # Estimate Schoumakers ratio
-data <- data %>% mutate(survior_ratio = surv_Male / surv_Female,
+data <- data %>% mutate(survivor_ratio = surv_Male / surv_Female,
                 gen_diff = gen_len_m - gen_len_f,
-                male_female_tfr = 1 / 105 * survior_ratio * exp(r * (gen_diff)))
+                male_female_tfr = 1 / 105 * survivor_ratio * exp(r * (gen_diff)))
 
 # Plot the result
 ggplot(data, aes(x = year, y = male_female_tfr)) +
-  geom_line(aes(linetype = "stable population"), size = 1.4) +
-  geom_line(data = tfr_national, aes(y = TFR_m / TFR_f, linetype = "observed"), size = 1.4) +
-  scale_y_continuous(expand = c(0, 0)) +
+  geom_line(aes(linetype = "stable population"), linewidth = 1.4) +
+  geom_line(data = tfr_national, aes(y = TFR_m / TFR_f, linetype = "observed"), linewidth = 1.4) +
+  scale_y_continuous(expand = c(0, 0), n.breaks = 10, limits = c(0, 4)) +
   scale_linetype_manual(name = "Estimation:", values = c("solid", "dashed")) +
-  theme(legend.position = c(0.8, 0.9))
-
+  theme(legend.position = c(0.8, 0.9)) +
+  ylab("Male TFR / Female TFR")
 
 ```
 
-$$
-\frac{TFR_{m}}{TFR_{f}} = \frac{1} {SRB}  \cdot \frac{p(MAC)_{m}} {p(MAC)_{f}}  \cdot exp(r \cdot (T_m - T_f))
-$$
+
+
+### Contribution of components
+
+Now, we are analyzing the different components behind the decline of the male to female TFR ratio. Figure @figure-components illustrates the different components of the stable population model of the *male-to-female TFR ratio*. We find that the trend is driven by the population growth rate and by the generation difference. The generation length difference between men and women is declining over time, which leads to a declining male TFR to female TFR ratio. Moreover, and even larger, the population growth rate is declining, which translates into a declining male TFR to female TFR ratio.
+
+```{r components}
+# Plot the components
+ggplot(data, aes(x = year)) +
+ geom_line(aes(y = gen_diff, colour = "Generation difference"), linewidth = 1.4) +
+  geom_line(aes(y = survivor_ratio, colour = "Survivorship ratio"), linewidth = 1.4) +
+  geom_line(aes(y = r, colour = "Growth rate"), linewidth = 1.4) +
+  geom_hline(aes(yintercept = 1.05, colour = "Sex ratio at birth"), linewidth = 1.4) +
+  scale_colour_manual(name = "Component:", values = c(MPIDRred, MPIDRgreen, MPIDRpurple,  MPIDRorange)) +
+  theme(legend.key.width = unit(0.4, "cm")) +
+  ylab("Value") + xlab("Year")
+
+```
+
+
+# References
