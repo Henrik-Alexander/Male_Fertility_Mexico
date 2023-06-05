@@ -22,7 +22,7 @@
   years <- 1990:2021
   
   # Create folders
-  if (!all(file.exists(paste0("Raw/", years)))) map(paste0("Raw/", years), dir.create, showWarnings = FALSE)
+  if (!all(file.exists(paste0("Raw/Mexico/", years)))) map(paste0("Raw/Mexico/", years), dir.create, showWarnings = FALSE)
 
   # Zipfile
   zipfile <- "Raw/Mexico"
@@ -30,7 +30,7 @@
 ### Get and clean the data ---------------------------------------------------
     
   # Load the Data
-  if (!file.exists(paste0("Raw/Mexico", years, "_dbf.zip"))) {
+  if (!file.exists(paste0("Raw/Mexico", years[1], "_dbf.zip"))) {
   map(years, load_data_MEX, zipfile)
   }
   

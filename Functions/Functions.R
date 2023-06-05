@@ -106,6 +106,20 @@ return(LT)
 }
 
 
+#### Population Share ----------------------------------------
+
+pop_share <- function(population){
+  share <- population / sum(population, na.rm = TRUE)
+  return(share)
+}
+
+#### Estimate the difference --------------------------------
+
+difference <- function(x, y){
+  diff <- y - x
+  return(diff)
+}
+
 #####               END               ########################
 
 

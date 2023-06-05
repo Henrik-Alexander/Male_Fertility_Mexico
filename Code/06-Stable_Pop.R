@@ -22,27 +22,37 @@ mortality <- fread("Raw/mortality_mexico_un.csv")
 
 ### Clean the mortality data ------------------------------------------------
 
+# Load the mortality data
+mortality <- fread("Raw/mortality_mexico_un.csv")
+
 # Clean the names
 mortality <- mortality %>%
   clean_names() %>% 
   select(indicator_short_name, time, author, location, sex, age, value) %>% 
   mutate(age = as.integer(str_remove_all(age, "\\+")))
 
+## Estimate life tables by sex
+lifetables_f <- mortality %>% filter(sex == "Female")
+lifetables_m <- mortality %>% filter(sex == "Male")
+
 # Split the data
-mx <- split(mortality$value, list(mortality$time, mortality$sex))
+mx_f <- split(lifetables_f$value, lifetables_f$time)
+mx_m <- split(lifetables_m$value, lifetables_m$time)
 
 # Estimate the lifetables
-lifetables <- lapply(mx, lifetable, sex = "M")
+lifetables_m <- lapply(mx_m, lifetable, sex = "M")
+lifetables_f <- lapply(mx_f, lifetable, sex = "F")
 
 # Combine the lifetables
-lifetables <- bind_rows(lifetables, .id = "id")
+lifetables_f <- bind_rows(lifetables_f, .id = "id") %>% mutate(sex = "Female", year = as.numeric(id)) 
+lifetables_m <- bind_rows(lifetables_m, .id = "id") %>% mutate(sex = "Male", year = as.numeric(id))
+
+# Combine the male and the female life table
+lifetables <- bind_rows(lifetables_m, lifetables_f)
 
 # Get the names
 lifetables <- lifetables %>%
-  mutate(sex = as.factor(str_split(id, pattern = "\\.", simplify = TRUE)[, 2]), 
-         year   = as.integer(str_split(id, pattern = "\\.", simplify = TRUE)[, 1])) %>% 
   select(-id)
-
 
 ### Estimate mean generation length -------------------------------------
 
@@ -53,7 +63,7 @@ px <- lifetables %>% select(age, px, sex, year)
 px <- pivot_wider(px, values_from = "px", names_from = "sex")
 
 # JOin the data
-mor_fer <- inner_join(px, asfr_national, by = c("year", "age" = "age_mot")) 
+mor_fer <- inner_join(px, asfr_nat, by = c("year", "age")) 
 
 # Estimate the generation length
 gen_length <- mor_fer %>% 
@@ -68,7 +78,7 @@ gen_length <- mor_fer %>%
 lifetables_f <- lifetables %>% filter(sex == "Female")
 
 # Join with fertility data
-mor_fer <- inner_join(lifetables_f, asfr_national, by = c("year", "age" = "age_mot")) 
+mor_fer <- inner_join(lifetables_f, asfr_nat, by = c("year", "age")) 
 
 # Estimate the growth rate
 growth_rate <- mor_fer %>%
@@ -80,17 +90,17 @@ growth_rate <- mor_fer %>%
 ### Estimate the mean age at childbearing -------------------------------
 
 # Join the data
-mean_age <- asfr_national %>%
+mean_age <- asfr_nat %>%
   group_by(year) %>%
-  summarise(mac_f = sum(age_mot * asfr_f)/ sum(asfr_f),
-            mac_m = sum(age_mot * asfr_m)/ sum(asfr_m), 
+  summarise(mac_f = sum(age * asfr_f)/ sum(asfr_f),
+            mac_m = sum(age * asfr_m)/ sum(asfr_m), 
             difference =  mac_m - mac_f)
 
 # Combine the data
 surv_mean_age <- inner_join(lifetables, mean_age, by = c("year")) %>%
   mutate(across(c(mac_f, mac_m), round)) %>% 
-  filter((age == mac_f & sex == "Female") | (age == mac_f & sex == "Male")) %>% 
-  select(px, year, age, sex) %>%
+  filter((age == mac_f & sex == "Female") | (age == mac_m & sex == "Male")) %>% 
+  select(px, year, mac_f, mac_m, sex) %>%
   pivot_wider(names_from = "sex", values_from = "px", names_prefix =  "surv_")
 
 ### Estimate stable population ratio -----------------------------------
@@ -131,7 +141,7 @@ ggplot(growth_rate, aes(year, r)) +
 # Plot the male to female TFR ratio
 ggplot(data, aes(x = year, y = male_female_tfr)) +
   geom_line(aes(linetype = "stable population"), linewidth = 1.4) +
-  geom_line(data = tfr_national, aes(y = TFR_m / TFR_f, linetype = "observed"), linewidth = 1.4) +
+  geom_line(data = tfr_nat, aes(y = tfr_m / tfr_f, linetype = "observed"), linewidth = 1.4) +
   scale_y_continuous(expand = c(0, 0), n.breaks = 10, limits = c(0, 4)) +
   scale_linetype_manual(name = "Estimation:", values = c("solid", "dashed")) +
   theme(legend.position = c(0.8, 0.9)) +
@@ -150,7 +160,9 @@ ggplot(data, aes(x = year)) +
   geom_line(aes(y = survivor_ratio, colour = "Survivorship ratio"), linewidth = 1.4) +
   geom_line(aes(y = r, colour = "Growth rate"), linewidth = 1.4) +
   geom_hline(aes(yintercept = 1.05, colour = "Sex ratio at birth"), linewidth = 1.4) +
-  scale_colour_manual(name = "Component:", values = c(MPIDRred, MPIDRgreen, MPIDRpurple,  MPIDRorange)) +
+  scale_colour_manual(name = "Component:",
+                      values = c(MPIDRred, MPIDRgreen, MPIDRpurple,  MPIDRorange)) +
+  scale_y_continuous(trans = "log10", labels = scales::label_number_si()) +
   theme(legend.key.width = unit(0.4, "cm")) +
   ylab("Value") + xlab("Year")
 

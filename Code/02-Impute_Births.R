@@ -95,19 +95,17 @@
   
   # Clean the data
   births_fat <- births_fat %>%
-    mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
-          years   = as.integer(str_split(year, pattern = "\\.", simplify = TRUE)[, 2]))
+    mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = TRUE)[, 1]), 
+           year   = as.integer(str_split(year, pattern = "\\.", simplify = TRUE)[, 2]))
   
   
   # Clean the data
   births_mot <- births_mot %>%
-    mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
-           year   = as.integer(str_split(year, pattern = "\\.", simplify = T)[, 2]))
+    mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = TRUE)[, 1]), 
+           year   = as.integer(str_split(year, pattern = "\\.", simplify = TRUE)[, 2]))
   
-
   
 ### Plot the data ------------------------------------------------------
-  
   
   # Plot females
   ggplot(births_fat, aes(age_fat, births, group = year,  colour = year)) +

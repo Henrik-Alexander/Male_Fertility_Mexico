@@ -1,28 +1,30 @@
-### Meta - File
+### META  ###############################################
+# Purpose: Run all the sub-files                        #
+# Author: Henrik-Alexander Schubert                     #
+# E-Mail: schubert@demogr.mpg.de                        #
+# Date: 06th May 2023                                   #
+# Pre-requisites:                                       #                 
+# - Functions are stored                                #
+# - Packages are installed                              #
+# - Population, mortality, shape data is saved in Raw   #
+#########################################################
 
-# This file executes all the files in the /Code/ folder. 
-
-#===================================================
-# Requirements: 
-# Functions are stored
-# Packages are installed
-# Population, mortality and shape data is loaded and saved in Raw
-#====================================================
 
 # 1. Load the birth data
-source("Code/1-Loading.R")
+source("Code/01-Loading_Births.R")
 
 # 2. Impute the births
-source("Code/2-Impute_births.R")
+source("Code/02-Impute_Births.R")
 
 # 3. Load the population data
-source("Code/3-Loading_Pop.R")
+source("Code/03-Loading_Pop.R")
 
-# 4. Analysis
-source("Code/4-Analysis.R")
+# 4. Demographic analysis
+source("Code/04-Analysis.R")
 
 # 5. Spatial analysis
-source("Code/5-SpatialAnalysis.R")
+source("Code/05-Spatial_Analysis.R")
 
 # 6. Stable population theory
-source("Code/6-StablePop.R")
+source("Code/06-Stable_Pop.R")
+

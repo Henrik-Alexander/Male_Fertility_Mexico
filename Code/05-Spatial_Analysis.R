@@ -8,13 +8,21 @@
 
 ### Settings -----------------------------------------------------------------
 
+rm(list = ls())
+
 # Load the packages
 source("Functions/Packages.R")
 source("Functions/Graphics.R")
 source("Functions/Functions.R")
 
+# Load the fertiltiy data
+load("Data/tfr_regional_mexico.Rda")
+
 # Set the coordinate reference system
 crs <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
+# Load the data world
+world <- ne_countries(scale = "medium", returnclass = "sf")
 
 ### Data wrangling -----------------------------------------------------------
 
@@ -24,24 +32,21 @@ shape <- read_sf("Raw/Shape/00ent.shp")
 # Create names
 names(shape) <- c("entity", "code", "state", "geometry")
 
-# Transform the coordinate system
-shape <- st_transform(shape, crs = crs)
-
 # Mutate the values
 shape <- shape %>% select(entity, state, geometry) %>% 
   mutate(entity = factor(as.integer(entity)))
 
-# Combine the shape data
-tfr_spatial_f <- inner_join(shape, tfr_f, by = c("entity" = "entity"))
-tfr_spatial_m <- inner_join(shape, tfr_m, by = c("entity" = "entity"))
+# Transform the coordinate system
+shape <- st_transform(shape, crs = crs)
 
-# Load the data world
-world <- ne_countries(scale = "medium", returnclass = "sf")
+# Combine the shape data
+tfr_spat <- inner_join(shape, tfr_reg, by = c("entity" = "entity"))
+
 
 ### Plotting  ---------------------------------------------------------------
 
 # Plot
-tfr_spatial_f %>% filter(year == 2018) %>% 
+tfr_spat %>% filter(year == 2018) %>% 
   ggplot(aes(fill = tfr_f)) +
   geom_sf(data = world, fill = "grey") +
   geom_sf() +
@@ -56,7 +61,7 @@ tfr_spatial_f %>% filter(year == 2018) %>%
   coord_sf(xlim = c(-120, -85), ylim = c(12, 35), expand = FALSE)
 
 # Plot
-tfr_spatial_m %>% filter(year == 2019) %>% 
+tfr_spat %>% filter(year == 2019) %>% 
   ggplot(aes(fill = tfr_m)) +
   geom_sf(data = world, fill = "grey") +
   geom_sf() +
@@ -75,16 +80,17 @@ tfr_spatial_m %>% filter(year == 2019) %>%
 ### Male to female TFR Ratio ---------------------------------------
 
 # Estimate the TFR male to TFR female ratio
-male_female_TFR <- male_female_TFR %>%  mutate(TFR_ratio = tfr_m / tfr_f,
-                                               TFR_ratio_cat = )
+tfr_reg <- tfr_reg %>%
+                      mutate(tfr_ratio = tfr_m / tfr_f,
+                      tfr_ratio_cat = cut(tfr_ratio, breaks = c(0, 0.95, 1.05, 100)))
 
 # Join with spatial information
-male_female_TFR <- inner_join(male_female_TFR, shape, by = c("entity" = "entity"))
+tfr_reg <- inner_join(tfr_reg, shape, by = c("entity" = "entity"))
 
 # Plot
-plot_panel_ratio <- male_female_TFR %>%
+plot_panel_ratio <- tfr_reg %>%
   filter(year %in% c(1990, 2000, 2010, 2020)) %>% 
-  ggplot(aes(geometry = geometry, fill = TFR_ratio)) +
+  ggplot(aes(geometry = geometry, fill = tfr_ratio)) +
     geom_sf(data = world, fill = "grey") +
     geom_sf() +
     facet_wrap(~ year, ncol = 2) +
@@ -102,9 +108,7 @@ plot_panel_ratio <- male_female_TFR %>%
 
 plot_panel_ratio
 
-
 # save the plot
 ggsave(plot_panel_ratio, filename = "Figures/panel_birthsqueeze_mexico.pdf", height = 20, width = 25, units = "cm")
-
 
 ### END ########################################################################  

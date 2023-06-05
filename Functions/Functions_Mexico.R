@@ -17,33 +17,6 @@
 
 #Sys.setlocale("LC_ALL", "ES_ES.UTF-8")
 
-### Load the state names -----------------------------------------------
-if(!file.exists("Data/geogr_entities.Rda")){
-  
-  # Set the path
-  website <- "https://en.wikipedia.org/wiki/Administrative_divisions_of_Mexico"
-  
-  # Reading the table
-  website <- read_html(website)
-  
-  # Obtain the pieces of the web page
-  entities <- html_node(page, ".wikitable")
-  
-  # Convert the html table element into a data frame
-  entities <- html_table(entities, fill = TRUE)
-  
-  # Add a number
-  entities$entity <- factor(1:nrow(entities))
-  
-  # Clean the data
-  entities <- clean_names(entities) %>% 
-    rename(entity_name = name_of_federative_entity) %>%
-    select(entity_name, entity)
-  
-  # Save the data
-  save(entities, file = "Data/geogr_entities.Rda")
-}
-
 
 #### Load data for mexico -----------------------------------
 

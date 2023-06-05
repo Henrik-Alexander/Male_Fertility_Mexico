@@ -119,7 +119,7 @@ load("Data/tfr_national_mexico.Rda")
 px <- pivot_wider(px, values_from = "px", names_from = "sex")
 
 # Join the data
-mor_fer <- inner_join(px, asfr_national, by = c("year", "age" = "age_mot")) 
+mor_fer <- inner_join(px, asfr_nat, by = c("year", "age")) 
 
 # Estimate the generation length
 gen_length <- mor_fer %>% 
@@ -151,7 +151,7 @@ Here, $f(x)_f$ is the number of female births a women at age $x$ produces on ave
 lifetables_f <- lifetables %>% filter(sex == "Female")
 
 # Join with fertility data
-mor_fer <- inner_join(lifetables_f,asfr_national, by = c("year", "age" = "age_mot")) 
+mor_fer <- inner_join(lifetables_f, asfr_nat, by = c("year", "age")) 
 
 # Estimate the growth rate
 growth_rate <- mor_fer %>% filter(year %in% 1990:2021) %>% 
@@ -180,9 +180,10 @@ In `R`, we estimate the *mean age of childbearing* in the following way:
 
 ```{r}
 # Join the data
-mean_age <- asfr_national %>% group_by(year) %>% 
-summarise(mac_f = sum(age_mot * asfr_f)/ sum(asfr_f),
-          mac_m = sum(age_mot * asfr_m)/ sum(asfr_m), 
+mean_age <- asfr_nat %>%
+  group_by(year) %>% 
+  summarise(mac_f = sum(age * asfr_f)/ sum(asfr_f),
+          mac_m = sum(age * asfr_m)/ sum(asfr_m), 
           difference =  mac_m - mac_f)
 
 # Plot the development of the mean age of childbering
@@ -200,7 +201,8 @@ We estimated the mean age of childbearing in order to obtain the probability of 
 surv_mean_age <- inner_join(lifetables, mean_age, by = c("year")) %>%
   mutate(across(c(mac_f, mac_m), round)) %>% 
   filter((age == mac_f & sex == "Female") | (age == mac_m & sex == "Male")) %>% 
-  select(px, year, mac_f, mac_m, sex) %>% pivot_wider(names_from = "sex", values_from = "px", names_prefix =  "surv_")
+  select(px, year, mac_f, mac_m, sex) %>%
+  pivot_wider(names_from = "sex", values_from = "px", names_prefix =  "surv_")
 
 
 # Plot the survival ratio
@@ -209,13 +211,12 @@ ggplot(surv_mean_age, aes(year)) +
   geom_line(aes(y = surv_Male, colour = "males"), linewidth = 1.4) +
   scale_colour_manual(name = "Sex:", values = c(MPIDRred, MPIDRblue)) +
   ylab("Mean age of childbearing") + xlab("Year")
-  
 
 ```
 
 ## Estimation
 
-Now, that we have all components to estimate the male-to-female TFR ratio in a stable population, we just insert all components. Figure @figure-ratio shows the time-series for the observed male-to--female TFR ratio against the value from stable population theory. We see that the trends are similar in terms of direction, as both curves decline with time. However, the level of the two curves is very different. The observed ratio starts in 1990 with a value of `r round(tfr_national[tfr_national$year == 1990, ]$TFR_m / tfr_national[tfr_national$year == 1990, ]$TFR_f, 2)` and declines subsequently towards `r round(tfr_national[tfr_national$year == 2021, ]$TFR_m / tfr_national[tfr_national$year == 2021, ]$TFR_f, 2)`. Thus, throughout time, the male TFR exceeds the female TFR. In contrast, for the time series derived from stable population theory, the ratio is in year 1990 above 3 and declines almost to 0. 
+Now, that we have all components to estimate the male-to-female TFR ratio in a stable population, we just insert all components. Figure @figure-ratio shows the time-series for the observed male-to--female TFR ratio against the value from stable population theory. We see that the trends are similar in terms of direction, as both curves decline with time. However, the level of the two curves is very different. The observed ratio starts in 1990 with a value of `r round(tfr_nat[tfr_nat$year == 1990, ]$TFR_m / tfr_nat[tfr_nat$year == 1990, ]$TFR_f, 2)` and declines subsequently towards `r round(tfr_nat[tfr_nat$year == 2021, ]$TFR_m / tfr_nat[tfr_nat$year == 2021, ]$TFR_f, 2)`. Thus, throughout time, the male TFR exceeds the female TFR. In contrast, for the time series derived from stable population theory, the ratio is in year 1990 above 3 and declines almost to 0. 
 
 ```{r ratio}
 # Combine all the data
@@ -235,7 +236,9 @@ data <- data %>% mutate(survivor_ratio = surv_Male / surv_Female,
 # Plot the result
 ggplot(data, aes(x = year, y = male_female_tfr)) +
   geom_line(aes(linetype = "stable population"), linewidth = 1.4) +
-  geom_line(data = tfr_national, aes(y = TFR_m / TFR_f, linetype = "observed"), linewidth = 1.4) +
+  geom_line(data = tfr_nat,
+            aes(y = tfr_m / tfr_f, linetype = "observed"),
+            linewidth = 1.4) +
   scale_y_continuous(expand = c(0, 0), n.breaks = 10, limits = c(0, 4)) +
   scale_linetype_manual(name = "Estimation:", values = c("solid", "dashed")) +
   theme(legend.position = c(0.8, 0.9)) +
