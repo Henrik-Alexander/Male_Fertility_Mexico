@@ -29,7 +29,8 @@
   load("Data/births_complete_MEX.Rda")
   
   # Filter the data
-  data <- data %>% filter(entity %!in% c("USA", "Other Latin American Countries", "Other countries"))
+  data <- data %>%
+    filter(entity %!in% c("USA", "Other Latin American Countries", "Other countries"))
   
   # Split by year and region
   data <- split(data, list(data$entity, data$year))
@@ -37,7 +38,7 @@
 ### Impute the births -----------------------------------------------------
   
   # Impute mother's age by using father's age
-  d1 <- lapply(data, filter, !is.na(age_fat) )
+  d1 <- lapply(data, filter, !is.na(age_fat))
   d1 <- lapply(d1, impute_variable, outcome = age_mot, predictor = age_fat)
   d1 <- bind_rows(d1, .id = "year")
   
@@ -65,7 +66,7 @@
 ### Impute age of the father ---------------------------------------------
   
   # Impute father's age by using mother's age
-  d1 <- lapply(data, filter, !is.na(age_mot) )
+  d1 <- lapply(data, filter, !is.na(age_mot))
   d1 <- lapply(d1, impute_variable, outcome = age_fat, predictor = age_mot)
   d1 <- bind_rows(d1, .id = "year")
   
@@ -93,13 +94,15 @@
 ### Clean the data ----------------------------------------------------
   
   # Clean the data
-  births_fat <- births_fat %>% mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
-                        year   = as.integer(str_split(year, pattern = "\\.", simplify = T)[, 2]))
+  births_fat <- births_fat %>%
+    mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
+          years   = as.integer(str_split(year, pattern = "\\.", simplify = TRUE)[, 2]))
   
   
   # Clean the data
-  births_mot <- births_mot %>% mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
-                                      year   = as.integer(str_split(year, pattern = "\\.", simplify = T)[, 2]))
+  births_mot <- births_mot %>%
+    mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = T)[, 1]), 
+           year   = as.integer(str_split(year, pattern = "\\.", simplify = T)[, 2]))
   
 
   
@@ -116,7 +119,7 @@
   ggplot(births_mot, aes(age_mot, births, group = year, colour = year)) +
     geom_line() +
     facet_wrap(~ entity, scales = "free_y") +
-    scale_colour_gradient(low = MPIDRgreen, high =  MPIDRyellow )
+    scale_colour_gradient(low = MPIDRgreen, high =  MPIDRyellow)
   
   # Save the data
   save(births_fat, file = "Data/births_father.Rda")

@@ -29,7 +29,7 @@ mortality <- mortality %>%
   mutate(age = as.integer(str_remove_all(age, "\\+")))
 
 # Split the data
-mx <- split(mortality$value,list(mortality$time, mortality$sex))
+mx <- split(mortality$value, list(mortality$time, mortality$sex))
 
 # Estimate the lifetables
 lifetables <- lapply(mx, lifetable, sex = "M")
@@ -39,8 +39,8 @@ lifetables <- bind_rows(lifetables, .id = "id")
 
 # Get the names
 lifetables <- lifetables %>%
-  mutate(sex = as.factor(str_split(id, pattern = "\\.", simplify = T)[, 2]), 
-         year   = as.integer(str_split(id, pattern = "\\.", simplify = T)[, 1])) %>% 
+  mutate(sex = as.factor(str_split(id, pattern = "\\.", simplify = TRUE)[, 2]), 
+         year   = as.integer(str_split(id, pattern = "\\.", simplify = TRUE)[, 1])) %>% 
   select(-id)
 
 
@@ -68,18 +68,20 @@ gen_length <- mor_fer %>%
 lifetables_f <- lifetables %>% filter(sex == "Female")
 
 # Join with fertility data
-mor_fer <- inner_join(lifetables_f,asfr_national, by = c("year", "age" = "age_mot")) 
+mor_fer <- inner_join(lifetables_f, asfr_national, by = c("year", "age" = "age_mot")) 
 
 # Estimate the growth rate
-growth_rate <- mor_fer %>% filter(year %in% 1990:2021) %>% 
+growth_rate <- mor_fer %>%
+  filter(year %in% 1990:2021) %>% 
   mutate(asfr_f = if_else(is.na(asfr_f), 0, asfr_f)) %>% 
   group_by(year) %>% 
-  summarise(r = sum((asfr_f*0.4886)*Lx/100000))
+  summarise(r = sum((asfr_f * 0.4886) * Lx / 100000))
 
 ### Estimate the mean age at childbearing -------------------------------
 
 # Join the data
-mean_age <- asfr_national %>% group_by(year) %>% 
+mean_age <- asfr_national %>%
+  group_by(year) %>%
   summarise(mac_f = sum(age_mot * asfr_f)/ sum(asfr_f),
             mac_m = sum(age_mot * asfr_m)/ sum(asfr_m), 
             difference =  mac_m - mac_f)
@@ -88,7 +90,8 @@ mean_age <- asfr_national %>% group_by(year) %>%
 surv_mean_age <- inner_join(lifetables, mean_age, by = c("year")) %>%
   mutate(across(c(mac_f, mac_m), round)) %>% 
   filter((age == mac_f & sex == "Female") | (age == mac_f & sex == "Male")) %>% 
-  select(px, year, age, sex) %>% pivot_wider(names_from = "sex", values_from = "px", names_prefix =  "surv_")
+  select(px, year, age, sex) %>%
+  pivot_wider(names_from = "sex", values_from = "px", names_prefix =  "surv_")
 
 ### Estimate stable population ratio -----------------------------------
 

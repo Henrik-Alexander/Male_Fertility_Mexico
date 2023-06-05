@@ -12,7 +12,7 @@
   source("Functions/Packages.R")
   source("Functions/Graphics.R")
   source("Functions/Functions.R")
-  
+
   # Path:
   # https://en.www.inegi.org.mx/contenidos/programas/natalidad/microdatos/2021/natalidad_base_datos_2021_dbf.zip
 
@@ -22,7 +22,7 @@
   years <- 1990:2021
   
   # Create folders
-  if(!all(file.exists(paste0("Raw/", years)))) map(paste0("Raw/", years), dir.create, showWarnings = FALSE)
+  if (!all(file.exists(paste0("Raw/", years)))) map(paste0("Raw/", years), dir.create, showWarnings = FALSE)
 
   # Zipfile
   zipfile <- "Raw/Mexico"
@@ -30,7 +30,7 @@
 ### Get and clean the data ---------------------------------------------------
     
   # Load the Data
-  if(!all(file.exists(paste0("Raw/Mexico", years, "_dbf.zip")))){
+  if (!file.exists(paste0("Raw/Mexico", years, "_dbf.zip"))) {
   map(years, load_data_MEX, zipfile)
   }
   
@@ -47,7 +47,7 @@
   names(data) <- years
   
   # Select
-  data <- lapply(data, select, c(entity, age_mot, age_fat, year, parity) )
+  data <- lapply(data, select, c(entity, age_mot, age_fat, year, parity))
   
   # Make a list of regions and years
   data <- bind_rows(data)
@@ -58,25 +58,33 @@
 ### Plot the data -----------------------------------------------------
   
   # Missing
-  missing <- data %>% group_by(year) %>% 
+  missing <- data %>%
+    group_by(year) %>% 
     summarise(age_mot = mean(is.na(age_mot)),
               age_fat = mean(is.na(age_fat)))
   
   
-  data %>% group_by(year) %>% 
+  data %>%
+    group_by(year) %>% 
     summarise(NAs = mean(is.na(entity)))
   
   # Plot the missing values
   missing_plot <- ggplot(missing, aes(year, age_mot)) +
-    geom_line(aes(col = "Age of Mother"), linewidth = 1.4) +
-    geom_line(aes(y = age_fat, col = "Age of Father"), linewidth = 1.4) +
+    geom_line(aes(col = "Age of Mother"),
+              linewidth = 1.4) +
+    geom_line(aes(y = age_fat,
+                  col = "Age of Father"),
+              linewidth = 1.4) +
     ylab("Share missing") +
-    scale_y_continuous(labels = scales::percent, limits = c(0, 0.2), expand = c(0, 0)) +
-    scale_colour_manual(values = c("Age of Mother" = MPIDRyellow, "Age of Father" = MPIDRgreen)) +
+    scale_y_continuous(labels = scales::percent,
+                       limits = c(0, 0.2),
+                       expand = c(0, 0)) +
+    scale_colour_manual(values = c("Age of Mother" = MPIDRyellow,
+                                   "Age of Father" = MPIDRgreen)) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     ggtitle("Share of missing values for 'Age of mother' and 'Age of mother'")
   
   ggsave(missing_plot, filename = "Figures/share_missing_sex.pdf")
   
 
-  ### END ########################################################################  
+### END ######################################################################  
