@@ -160,17 +160,18 @@ comp_asfr <- asfr_nat %>%
                        delta_rate = difference(asfr_f, asfr_m),
                        change_rate = pop_share_f * delta_rate,
                        change_pop  = asfr_f * delta_pop,
-                       change_inter = delta_pop * delta_rate)
+                       change_inter = delta_pop * delta_rate,
+                       .groups = "drop")
   
 # Make the decomposition
-decomposition <- comp_asfr %>%
+decomp_nat <- comp_asfr %>%
   select(year, age, change_rate, change_pop, change_inter) %>%
   pivot_longer(cols = starts_with("change"),
                names_to = "component",
                values_to = "contribution") 
 
 # Plot the decomposition
-decomposition %>% 
+decomp_nat %>% 
   filter(year %in% c(1990, 2000, 2010, 2020)) %>% 
   ggplot(aes(age, contribution, fill = component)) +
   geom_col(colour = "white", linewidth = 0.01) +
@@ -192,7 +193,7 @@ Moreover, since we have the additive components for single years, we can also in
 
 ```{r}
 # Plot the time trend for populatin estimates
-decomposition %>% 
+decomp_nat %>% 
   filter(age %in% c(15, 25, 35, 45)) %>% 
   ggplot(aes(x = year, contribution, colour = component, group = component)) +
   geom_line(linewidth = 1.2) +
@@ -209,6 +210,25 @@ decomposition %>%
         legend.key.height = unit(0.2, "cm"),
         axis.text.x = element_text(angle = 45, hjust = 1) )
 ```
+
+In order to better understand the size of the contribution, we create tables that display the components with the largest contribution.
+
+```{r}
+# Create a table
+left_join(decomp_nat, tfr_nat, by = c("year")) %>%
+  mutate(change = tfr_f - tfr_m,
+         relative_contribution = contribution / change, 2) %>% 
+  filter(year == 1990) %>% 
+  ungroup() %>% 
+  select(component, age, contribution,
+         relative_contribution, tfr_f, tfr_m, change) %>% 
+  arrange(desc(abs(relative_contribution))) %>%
+  mutate(relative_contribution =  paste(round(100 * relative_contribution, 2), "%")) %>%
+  slice_head(n = 5) %>% 
+  pander()
+```
+
+
 
 # Sub-national level
 Now, we are looking at the variation at the sub-national level.
@@ -242,25 +262,25 @@ ggplot(tfr_reg, aes(year)) +
 load("Data/asfr_regional_mexico.Rda")
 
 # What is the trend in the national TFR for women
-a <- ggplot(asfr_reg, aes(x = age, alpha = year)) +
+ggplot(asfr_reg, aes(x = age, alpha = year)) +
   geom_line(aes(y = asfr_f, colour = entity_name, group = interaction(year, entity)),
             linewidth = 1.4) +
   ylab("Age-specific fertilitly rate") +
   xlab("Age") +
   facet_wrap(~ entity_name) +
   guides(alpha = "none", colour = "none")
+```
 
+
+```{r}
 # What is the trend in the national TFR for women
-b <- ggplot(asfr_reg, aes(x = age, alpha = year)) +
+ggplot(asfr_reg, aes(x = age, alpha = year)) +
   geom_line(aes(y = asfr_m, colour = entity_name, group = interaction(year, entity)),
             linewidth = 1.4) +
   ylab("Age-specific fertilitly rate") +
   xlab("Age") +
   facet_wrap(~ entity_name) +
   guides(alpha = "none", colour = "none")
-
-
-a / b + plot_annotation(tag_levels = c("1"), tag_suffix = ")")
 ```
 
 The graphs are overfull. In order to make the graphics comparable, we estimate the male-to-female asfr ratio
@@ -286,7 +306,7 @@ asfr_reg %>%
 ```{r}
 # Estimate the decomposition
 comp_asfr_reg <- asfr_reg %>%
-                group_by(year, entity_name) %>%
+                group_by(year, entity_name, entity) %>%
                 mutate(pop_share_f = pop_share(mid_year_pop_f),
                        pop_share_m = pop_share(mid_year_pop_m),
                        delta_pop = difference(pop_share_f, pop_share_m),
@@ -296,7 +316,7 @@ comp_asfr_reg <- asfr_reg %>%
                        change_inter = delta_pop * delta_rate)
   
 # Make the decomposition
-decomposition <- comp_asfr_reg %>%
+decomp_reg <- comp_asfr_reg %>%
   select(year, age, change_rate, 
          change_pop, change_inter, entity_name) %>%
   pivot_longer(cols = starts_with("change"),
@@ -304,7 +324,7 @@ decomposition <- comp_asfr_reg %>%
                values_to = "contribution") 
 
 # Plot the decomposition
-decomposition %>% 
+decomp_reg %>% 
   filter(year %in% c(1990, 2020) &
          entity_name %in% c("Baja California Sur",
                             "Guerrero")) %>% 
@@ -323,7 +343,23 @@ decomposition %>%
         legend.key.height = unit(0.2, "cm"))
 ```
 
+In order to better understand the size of the contribution, we create tables that display the components with the largest contribution.
 
+
+```{r}
+# Create a table
+left_join(decomp_reg, tfr_reg, by = c("year", "entity")) %>%
+  mutate(change = tfr_f - tfr_m,
+         relative_contribution = contribution / change, 2) %>% 
+  filter(year == 1990) %>% 
+  ungroup() %>% 
+  select(component, entity_name, age, contribution,
+         relative_contribution, tfr_f, tfr_m, change) %>% 
+  arrange(desc(abs(relative_contribution))) %>%
+  mutate(relative_contribution =  paste(round(100 * relative_contribution, 2), "%")) %>%
+  slice_head(n = 5) %>% 
+  pander()
+```
 
 # References
 
