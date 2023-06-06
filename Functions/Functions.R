@@ -120,6 +120,13 @@ difference <- function(x, y){
   return(diff)
 }
 
+#### Average ------------------------------------------------
+
+averaging <- function(x, y){
+  m <- (y + x) / 2
+  return(m)
+}
+
 #####               END               ########################
 
 
