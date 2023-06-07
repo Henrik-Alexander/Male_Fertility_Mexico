@@ -22,14 +22,14 @@
   # Years range
   years <- 1990:2021
 
-  
+
 ### Read data -------------------------------------------------------------
   
   # Read birth data
   load("Data/births_complete_MEX.Rda")
   
   # Filter the data
-  data <- data %>%
+  data <- data |>
     filter(entity %!in% c("USA", "Other Latin American Countries", "Other countries"))
   
   # Split by year and region
@@ -54,7 +54,7 @@
   
   # Get the births with available information
   d4 <- lapply(data, filter, !is.na(age_mot))
-  d4 <- map(d4, function(x) x %>% group_by(age_mot) %>% summarise(births = n()))
+  d4 <- map(d4, function(x) x |> group_by(age_mot) |> summarise(births = n()))
   d4 <- bind_rows(d4, .id = "year")
   
   # Combine the results
@@ -82,7 +82,7 @@
   
   # Get the births with available information
   d4 <- lapply(data, filter, !is.na(age_fat))
-  d4 <- map(d4, function(x) x %>% group_by(age_fat) %>% summarise(births = n()))
+  d4 <- map(d4, function(x) x |> group_by(age_fat) |> summarise(births = n()))
   d4 <- bind_rows(d4, .id = "year")
   
   # Combine the results
@@ -94,13 +94,13 @@
 ### Clean the data ----------------------------------------------------
   
   # Clean the data
-  births_fat <- births_fat %>%
+  births_fat <- births_fat |>
     mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = TRUE)[, 1]), 
            year   = as.integer(str_split(year, pattern = "\\.", simplify = TRUE)[, 2]))
   
   
   # Clean the data
-  births_mot <- births_mot %>%
+  births_mot <- births_mot |>
     mutate(entity = as.factor(str_split(year, pattern = "\\.", simplify = TRUE)[, 1]), 
            year   = as.integer(str_split(year, pattern = "\\.", simplify = TRUE)[, 2]))
   

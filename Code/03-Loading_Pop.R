@@ -29,26 +29,26 @@
   names(pop) <- c("id", "year", "entity", "geo_code", "age", "sex", "population")
   
   # Harmonize the state names
-  pop <- pop %>% mutate(geo_code = factor(geo_code),
+  pop <- pop |> mutate(geo_code = factor(geo_code),
                         entity = case_when(entity == "Coahuila"  ~ "Coahuila de Zaragoza",
                                     entity == "Michoacán" ~ "Michoacán de Ocampo",
                                     entity == "Veracruz"  ~ "Veracruz de Ignacio de la Llave",
                                     entity %!in% c("Coahuila", "Michoacán", "Veracruz") ~ entity))
-  
+   
   # Estimate the lag value
-  pop <- pop %>%
-    group_by(entity, age, sex) %>%
+  pop <- pop |>
+    group_by(entity, age, sex) |>
     mutate(lag_pop = lag(population, order_by = year), 
-           mid_year_pop = (lag_pop + population) / 2) %>% 
+           mid_year_pop = (lag_pop + population) / 2) |> 
     ungroup()
   
   
   # Filter the data
-  pop <- pop %>% filter(age %in% ages & year %in% years)
+  pop <- pop |> filter(age %in% ages & year %in% years)
   
   # Make female and male data sets
-  pop_f <- pop %>% filter(sex == "Mujeres" & geo_code != 0) %>% select(-sex, -id)
-  pop_m <- pop %>% filter(sex == "Hombres" & geo_code != 0) %>% select(-sex, -id)
+  pop_f <- pop |> filter(sex == "Mujeres" & geo_code != 0) |> select(-sex, -id)
+  pop_m <- pop |> filter(sex == "Hombres" & geo_code != 0) |> select(-sex, -id)
   
   # Save the data
   save(pop_f, file = "Data/exposure_females.Rda")

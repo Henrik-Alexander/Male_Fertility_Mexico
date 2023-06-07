@@ -58,14 +58,14 @@
 ### Plot the data -----------------------------------------------------
   
   # Missing
-  missing <- data %>%
-    group_by(year) %>% 
+  missing <- data  |>
+    group_by(year) |> 
     summarise(age_mot = mean(is.na(age_mot)),
               age_fat = mean(is.na(age_fat)))
   
   
-  data %>%
-    group_by(year) %>% 
+  data |>
+    group_by(year) |> 
     summarise(NAs = mean(is.na(entity)))
   
   # Plot the missing values

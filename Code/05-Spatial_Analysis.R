@@ -33,7 +33,7 @@ shape <- read_sf("Raw/Shape/00ent.shp")
 names(shape) <- c("entity", "code", "state", "geometry")
 
 # Mutate the values
-shape <- shape %>% select(entity, state, geometry) %>% 
+shape <- shape |> select(entity, state, geometry) |> 
   mutate(entity = factor(as.integer(entity)))
 
 # Transform the coordinate system
@@ -46,7 +46,7 @@ tfr_spat <- inner_join(shape, tfr_reg, by = c("entity" = "entity"))
 ### Plotting  ---------------------------------------------------------------
 
 # Plot
-tfr_spat %>% filter(year == 2018) %>% 
+tfr_spat |> filter(year == 2018) |> 
   ggplot(aes(fill = tfr_f)) +
   geom_sf(data = world, fill = "grey") +
   geom_sf() +
@@ -61,7 +61,7 @@ tfr_spat %>% filter(year == 2018) %>%
   coord_sf(xlim = c(-120, -85), ylim = c(12, 35), expand = FALSE)
 
 # Plot
-tfr_spat %>% filter(year == 2019) %>% 
+tfr_spat |> filter(year == 2019) |> 
   ggplot(aes(fill = tfr_m)) +
   geom_sf(data = world, fill = "grey") +
   geom_sf() +
@@ -80,7 +80,7 @@ tfr_spat %>% filter(year == 2019) %>%
 ### Male to female TFR Ratio ---------------------------------------
 
 # Estimate the TFR male to TFR female ratio
-tfr_reg <- tfr_reg %>%
+tfr_reg <- tfr_reg |>
                       mutate(tfr_ratio = tfr_m / tfr_f,
                       tfr_ratio_cat = cut(tfr_ratio, breaks = c(0, 0.95, 1.05, 100)))
 
@@ -88,8 +88,8 @@ tfr_reg <- tfr_reg %>%
 tfr_reg <- inner_join(tfr_reg, shape, by = c("entity" = "entity"))
 
 # Plot
-plot_panel_ratio <- tfr_reg %>%
-  filter(year %in% c(1990, 2000, 2010, 2020)) %>% 
+plot_panel_ratio <- tfr_reg |>
+  filter(year %in5 c(1990, 2000, 2010, 2020)) |> 
   ggplot(aes(geometry = geometry, fill = tfr_ratio)) +
     geom_sf(data = world, fill = "grey") +
     geom_sf() +

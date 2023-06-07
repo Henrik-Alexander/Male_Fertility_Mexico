@@ -26,14 +26,14 @@ mortality <- fread("Raw/mortality_mexico_un.csv")
 mortality <- fread("Raw/mortality_mexico_un.csv")
 
 # Clean the names
-mortality <- mortality %>%
-  clean_names() %>% 
-  select(indicator_short_name, time, author, location, sex, age, value) %>% 
+mortality <- mortality |>
+  clean_names() |> 
+  select(indicator_short_name, time, author, location, sex, age, value) |> 
   mutate(age = as.integer(str_remove_all(age, "\\+")))
 
 ## Estimate life tables by sex
-lifetables_f <- mortality %>% filter(sex == "Female")
-lifetables_m <- mortality %>% filter(sex == "Male")
+lifetables_f <- mortality |> filter(sex == "Female")
+lifetables_m <- mortality |> filter(sex == "Male")
 
 # Split the data
 mx_f <- split(lifetables_f$value, lifetables_f$time)
@@ -44,20 +44,20 @@ lifetables_m <- lapply(mx_m, lifetable, sex = "M")
 lifetables_f <- lapply(mx_f, lifetable, sex = "F")
 
 # Combine the lifetables
-lifetables_f <- bind_rows(lifetables_f, .id = "id") %>% mutate(sex = "Female", year = as.numeric(id)) 
-lifetables_m <- bind_rows(lifetables_m, .id = "id") %>% mutate(sex = "Male", year = as.numeric(id))
+lifetables_f <- bind_rows(lifetables_f, .id = "id") |> mutate(sex = "Female", year = as.numeric(id)) 
+lifetables_m <- bind_rows(lifetables_m, .id = "id") |> mutate(sex = "Male", year = as.numeric(id))
 
 # Combine the male and the female life table
 lifetables <- bind_rows(lifetables_m, lifetables_f)
 
 # Get the names
-lifetables <- lifetables %>%
+lifetables <- lifetables |>
   select(-id)
 
 ### Estimate mean generation length -------------------------------------
 
 # Estimate it for the lifetables
-px <- lifetables %>% select(age, px, sex, year)
+px <- lifetables |> select(age, px, sex, year)
 
 # Pivot wider
 px <- pivot_wider(px, values_from = "px", names_from = "sex")
@@ -66,8 +66,8 @@ px <- pivot_wider(px, values_from = "px", names_from = "sex")
 mor_fer <- inner_join(px, asfr_nat, by = c("year", "age")) 
 
 # Estimate the generation length
-gen_length <- mor_fer %>% 
-  group_by(year) %>% 
+gen_length <- mor_fer |> 
+  group_by(year) |> 
   summarise(gen_len_m = sum(age * cumprod(Male) * asfr_m) / sum(cumprod(Male) * asfr_m),
             gen_len_f = sum(age * cumprod(Female) * asfr_f) / sum(cumprod(Female) * asfr_f))
 
@@ -75,42 +75,42 @@ gen_length <- mor_fer %>%
 ### Estimate the growth rate -------------------------------------------
 
 # Get the lifetables
-lifetables_f <- lifetables %>% filter(sex == "Female")
+lifetables_f <- lifetables |> filter(sex == "Female")
 
 # Join with fertility data
 mor_fer <- inner_join(lifetables_f, asfr_nat, by = c("year", "age")) 
 
 # Estimate the growth rate
-growth_rate <- mor_fer %>%
-  filter(year %in% 1990:2021) %>% 
-  mutate(asfr_f = if_else(is.na(asfr_f), 0, asfr_f)) %>% 
-  group_by(year) %>% 
+growth_rate <- mor_fer |>
+  filter(year %in% 1990:2021) |> 
+  mutate(asfr_f = if_else(is.na(asfr_f), 0, asfr_f)) |> 
+  group_by(year) |> 
   summarise(r = sum((asfr_f * 0.4886) * Lx / 100000))
 
 ### Estimate the mean age at childbearing -------------------------------
 
 # Join the data
-mean_age <- asfr_nat %>%
-  group_by(year) %>%
+mean_age <- asfr_nat |>
+  group_by(year) |>
   summarise(mac_f = sum(age * asfr_f)/ sum(asfr_f),
             mac_m = sum(age * asfr_m)/ sum(asfr_m), 
             difference =  mac_m - mac_f)
 
 # Combine the data
-surv_mean_age <- inner_join(lifetables, mean_age, by = c("year")) %>%
-  mutate(across(c(mac_f, mac_m), round)) %>% 
-  filter((age == mac_f & sex == "Female") | (age == mac_m & sex == "Male")) %>% 
-  select(px, year, mac_f, mac_m, sex) %>%
+surv_mean_age <- inner_join(lifetables, mean_age, by = c("year")) |>
+  mutate(across(c(mac_f, mac_m), round)) |> 
+  filter((age == mac_f & sex == "Female") | (age == mac_m & sex == "Male")) |> 
+  select(px, year, mac_f, mac_m, sex) |>
   pivot_wider(names_from = "sex", values_from = "px", names_prefix =  "surv_")
 
 ### Estimate stable population ratio -----------------------------------
 
 # Join the data
-data <- inner_join(surv_mean_age, growth_rate, by = "year") %>% 
+data <- inner_join(surv_mean_age, growth_rate, by = "year") |> 
   inner_join(., gen_length, by = "year")
 
 # Estimate Schoumakers ratio
-data <- data %>% mutate(survivor_ratio = surv_Male / surv_Female,
+data <- data |> mutate(survivor_ratio = surv_Male / surv_Female,
                         gen_diff = gen_len_m - gen_len_f,
                         male_female_tfr = 1 / 105 * survivor_ratio * exp(r * (gen_diff)))
 

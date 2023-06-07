@@ -30,10 +30,10 @@ males <- inner_join(births_fat, pop_m,
                     suffix = c("", "_name"))
 
 # Estimate the ASFR
-asfr_m <- males %>% mutate(asfr_m = births / mid_year_pop)
+asfr_m <- males |> mutate(asfr_m = births / mid_year_pop)
 
 # Estimate the TFR
-tfr_m <- asfr_m %>% summarise(tfr_m = sum(asfr_m), .by = c(year, entity))
+tfr_m <- asfr_m |> summarise(tfr_m = sum(asfr_m), .by = c(year, entity))
 
 ## Do the same for females --------------------------------------------------
 
@@ -43,10 +43,10 @@ females <- inner_join(births_mot, pop_f,
                       suffix = c("", "_name"))
 
 # Estimate the ASFR
-asfr_f <- females %>% mutate(asfr_f = births / mid_year_pop)
+asfr_f <- females |> mutate(asfr_f = births / mid_year_pop)
 
 # Estimate the TFR
-tfr_f <- asfr_f %>% summarise(tfr_f = sum(asfr_f), .by = c(year, entity))
+tfr_f <- asfr_f |> summarise(tfr_f = sum(asfr_f), .by = c(year, entity))
 
 
 ### JOin the data ---------------------------------------------------------
@@ -54,7 +54,7 @@ tfr_f <- asfr_f %>% summarise(tfr_f = sum(asfr_f), .by = c(year, entity))
 ### Compare
 asfr_reg <- left_join(asfr_f, asfr_m,
                               by = c("age_mot" = "age_fat", "year", "entity", "entity_name"),
-                              suffix = c("_f", "_m")) %>% 
+                              suffix = c("_f", "_m")) |> 
                     rename(age = age_mot)
 
 
@@ -65,8 +65,8 @@ tfr_reg <- inner_join(tfr_m, tfr_f)
 ### Estimate the TFR at the national level ---------------------------------
 
 # National level TFR
-asfr_nat <- asfr_reg %>%
-                  group_by(year, age) %>%
+asfr_nat <- asfr_reg |>
+                  group_by(year, age) |>
                   summarise(exposure_f = sum(mid_year_pop_f),
                             births_f   = sum(births_f),
                             asfr_f     = births_f / exposure_f,
@@ -77,35 +77,46 @@ asfr_nat <- asfr_reg %>%
 
 
 # Estimate the TFR at the national leve
-tfr_nat <- asfr_nat %>% 
-                    group_by(year) %>% 
+tfr_nat <- asfr_nat |> 
+                    group_by(year) |> 
                     summarise(tfr_f = sum(asfr_f),
                               tfr_m = sum(asfr_m))
 
 ### Decomposition national ----------------------------------------------------
 
+# Plot the crude birth rate for men and women
+cbr_nat <- asfr_nat |>
+  group_by(year) |> 
+  summarise(cbr_f = 1000 * sum(births_f) / sum(exposure_f),
+            cbr_m = 1000 * sum(births_m) / sum(exposure_m))
+
 # Estimate the decomposition
-comp_asfr <- asfr_nat %>%
-  group_by(year) %>%
+comp_asfr <- asfr_nat |> 
+  group_by(year) |> 
+  mutate(across(starts_with("asfr"), ~ .x * 1000)) |> 
   mutate(pop_share_f = pop_share(exposure_f),
          pop_share_m = pop_share(exposure_m),
-         delta_pop = difference(pop_share_f, pop_share_m),
-         delta_rate = difference(asfr_f, asfr_m),
-         change_rate = pop_share_f * delta_rate,
-         change_pop  = asfr_f * delta_pop,
-         change_inter = delta_pop * delta_rate)
+         mean_pop    = averaging(pop_share_f, pop_share_m),
+         mean_rate   = averaging(asfr_f, asfr_m),
+         delta_rate  = (asfr_f - asfr_m) * mean_pop,
+         delta_pop   = (pop_share_f - pop_share_m) * mean_rate,
+         .groups     = "drop")
 
 # Make the decomposition
-decomposition <- comp_asfr %>%
-  select(year, age, change_rate, change_pop, change_inter) %>%
-  pivot_longer(cols = starts_with("change"),
+decomp_nat <- comp_asfr %>%
+  select(year, age, delta_rate, delta_pop) %>%
+  pivot_longer(cols = starts_with("delta"),
                names_to = "component",
-               values_to = "contribution") 
+               values_to = "contribution") |> 
+  inner_join( cbr_nat, by = "year") |> 
+  mutate(contribution = contribution / (cbr_f - cbr_m))
+
+
 ### Decomposition regional ----------------------------------------------------
 
 # Estimate the decomposition
-comp_asfr_reg <- asfr_reg %>%
-  group_by(year, entity_name) %>%
+comp_asfr_reg <- asfr_reg |>
+  group_by(year, entity_name) |>
   mutate(pop_share_f = pop_share(mid_year_pop_f),
          pop_share_m = pop_share(mid_year_pop_m),
          delta_pop = difference(pop_share_f, pop_share_m),
@@ -115,9 +126,9 @@ comp_asfr_reg <- asfr_reg %>%
          change_inter = delta_pop * delta_rate)
 
 # Make the decomposition
-decomposition <- comp_asfr_reg %>%
+decomposition <- comp_asfr_reg |>
   select(year, age, change_rate, 
-         change_pop, change_inter, entity_name) %>%
+         change_pop, change_inter, entity_name) |>
   pivot_longer(cols = starts_with("change"),
                names_to = "component",
                values_to = "contribution") 
@@ -152,8 +163,8 @@ ggplot(asfr_nat, aes(age, asfr_f, group = year, colour = year)) +
 ### Plot the male-female difference for several years -------------------------
 
 # Plot the ASFR
-asfr_reg %>% 
-  filter(entity == 9 & year %in% c(1990, 2000, 2010, 2020)) %>% 
+asfr_reg |> 
+  filter(entity == 9 & year %in% c(1990, 2000, 2010, 2020)) |> 
   ggplot(aes(x = age)) +
   geom_line(aes(y = asfr_f, colour = "females"), linewidth = 2) +
   geom_line(aes(y = asfr_m, colour = "males"), linewidth = 2) +
@@ -165,9 +176,9 @@ asfr_reg %>%
 
 
 ### Plot the distribution over time
-tfr_reg %>% 
-  pivot_longer(cols = starts_with("tfr"), names_prefix = "tfr_", values_to = "tfr", names_to = "sex") %>% 
-  filter(sex != "TFR_ratio") %>% 
+tfr_reg |> 
+  pivot_longer(cols = starts_with("tfr"), names_prefix = "tfr_", values_to = "tfr", names_to = "sex") |> 
+  filter(sex != "TFR_ratio") |> 
   ggplot(aes(as.factor(year), tfr, fill = sex, colour = sex)) +
   scale_fill_manual(values = c( MPIDRred, MPIDRblue), name = "Sex:") +
   scale_colour_manual(values = c( MPIDRred, MPIDRblue), name = "Sex:") +
@@ -181,24 +192,26 @@ tfr_reg %>%
 ### Plot the decompositions ---------------------------------------------------
 
 # Plot the decomposition
-decomposition %>% 
+decomp_nat %>% 
   filter(year %in% c(1990, 2000, 2010, 2020)) %>% 
   ggplot(aes(age, contribution, fill = component)) +
-  geom_col() +
+  geom_col(colour = "white", linewidth = 0.01) +
   geom_hline(yintercept = 0, colour = "black") +
   facet_wrap(~ year) +
-  scale_fill_manual(values = c(MPIDRred, MPIDRorange, MPIDRblue),
-                    labels = c(expression(paste(Delta, "Population and rate")),
-                               expression(paste(Delta, "Population")),
+  scale_fill_manual(values = c(MPIDRred,  MPIDRblue),
+                    labels = c(expression(paste(Delta, "Population")),
                                expression(paste(Delta, "Rate"))),
                     name = "Component: ") +
   scale_x_continuous(expand = c(0, 0)) +
-  ylab("Contribution") + xlab("Age")
+  scale_y_continuous(labels = scales::percent) +
+  ylab("% Contribution") + xlab("Age") +
+  theme(legend.key.width = unit(0.3, "cm"),
+        legend.key.height = unit(0.2, "cm"))
 
 
-# Plot the time trend for populatin estimates
-decomposition %>% 
-  filter(age %in% c(15, 25, 35, 45)) %>% 
+# Plot the time trend for population estimates
+decomp_nat |> 
+  filter(age %in% c(15, 25, 35, 45)) |> 
   ggplot(aes(x = year, contribution, colour = component, group = component)) +
   geom_line(linewidth = 1.2) +
   geom_hline(yintercept = 0, colour = "black") +
@@ -213,10 +226,10 @@ decomposition %>%
 
 
 # Plot the decomposition
-decomposition %>% 
+decomp_nat |> 
   filter(year %in% c(1990, 2020) &
            entity_name %in% c("Baja California Sur",
-                              "Guerrero")) %>% 
+                              "Guerrero")) |> 
   ggplot(aes(age, contribution, fill = component)) +
   geom_col() +
   geom_hline(yintercept = 0, colour = "black") +
