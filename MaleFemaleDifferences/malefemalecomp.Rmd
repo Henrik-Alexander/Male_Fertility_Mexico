@@ -2,9 +2,11 @@
 title: "Male-Female Differences"
 author: "Henrik Schubert"
 date: "2023-06-05"
-output: pdf_document
-bibliography: U:/male fertility/Male_Fertility_Mexico/Text/references.bib
-abstract: "This file is going to compare male and female fertility rates in Mexico. We will use graphical tools, distributional comparison measures, decomposition methods and statistical tests. The comparisons will be both over time, and at the national level "
+output:
+  pdf_document:
+    toc: true
+bibliography: U:/projects/Male_Fertility_Mexico/Text/references.bib
+abstract: "This project aims to analyze and compare male and female fertility rates in Mexico using various statistical tools and techniques. The research focuses on both temporal trends and national-level variations in fertility rates. The study employs graphical tools, distributional comparison measures, decomposition methods, and statistical tests to provide a comprehensive understanding of the differences between male and female fertility rates. By examining fertility rates over time, the project seeks to identify any significant changes and patterns that may have occurred. Furthermore, by conducting national-level comparisons, the study aims to shed light on potential disparities or similarities between male and female fertility rates across different regions of Mexico. The research utilizes graphical tools to visualize the data, enabling a visual exploration of the trends and patterns in male and female fertility rates. Distributional comparison measures are employed to quantitatively assess the similarities and differences between the two groups. Additionally, decomposition methods are used to understand the underlying factors contributing to the observed variations in fertility rates. Statistical tests will be conducted to determine the statistical significance of the observed differences between male and female fertility rates. These tests will provide a rigorous evaluation of the findings, enabling meaningful conclusions to be drawn from the data. The project's findings will contribute to the existing body of knowledge on fertility rates in Mexico and provide valuable insights into gender-specific patterns and variations."
 editor_options: 
   chunk_output_type: console
 ---
@@ -116,7 +118,7 @@ ggplot(subset(asfr_nat, year %in% seq(1990, 2020, by = 15)), aes(x = age, linety
 
 Again, we see that fertility declined over time. The cumulative fertility rate in recent years is much lower than the rates for 2005 and 1990. Moreover, we see that in every year the cross-over behavior of male and female fertility. Moreover, the cross-over for male and female fertiltiy rates occurs in all years. However, the cross-over shifted to later ages. In 1990, the male-female fertility cross-over occured at age `r asfr_nat |> filter(cum_f < cum_m & year == 1990) |> ungroup() |> arrange(year)  |> slice_head(n = 1) |> pull(age)`, while in 2020, `r asfr_nat |> filter(cum_f < cum_m & year == 2020) |> ungroup() |> arrange(year)  |> slice_head(n = 1) |> pull(age)`.
 
-## Decomposing the difference in the total fertility rate
+## Decomposing the difference in the crude fertility rate
 Another tool to study the difference between the male and female is *decomposition*. The crude fertility rate can be decomposed into two components: *population structure* and *birth rates*. Because of the additive nature, it is feasible to use standard demographic decomposition methods (@preston_demography_2008, p. 28)
 
 
@@ -201,13 +203,17 @@ In the figure, we see that the largest contribution stems from the age-specific 
 In order to better understand the size of the contribution, we create tables that display the components with the largest contribution.
 
 ```{r}
-# Make a table for the relative contribution
-decomp_nat |>  
+# Estimate the relative contribution
+relative_contribution <- decomp_nat |>  
   filter(year == 1990) |>  
   ungroup() |> 
   arrange(contribution) |> 
   mutate(relative_contribution =  paste(round(100 * contribution, 2), "%"),
-         diff = cbr_f - cbr_m) |>
+         diff = cbr_f - cbr_m) 
+
+
+# Create a table for the relative contributions
+relative_contribution |>
   select(component, age, relative_contribution, cbr_f, cbr_m, diff) |> 
   slice_head(n = 5) |>  
   pander(col.names = c("Component", "Age", "Contribution (%)", "CBR (females)", "CBR (males)", "Difference"))
