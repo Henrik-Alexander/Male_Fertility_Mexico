@@ -4,7 +4,7 @@ author: "Henrik Schubert"
 date: "2023-06-05"
 output: pdf_document
 bibliography: U:/male fertility/Male_Fertility_Mexico/Text/references.bib
-abstract: "This file is going to compare male and female fertility rates in Mexico. We will use graphical tools, distributional comparison measures, decomposition methods and statistical tests. The comparisons will be both over time, across regions, and at the national level "
+abstract: "This file is going to compare male and female fertility rates in Mexico. We will use graphical tools, distributional comparison measures, decomposition methods and statistical tests. The comparisons will be both over time, and at the national level "
 editor_options: 
   chunk_output_type: console
 ---
@@ -17,16 +17,17 @@ source("Functions/Packages.R")
 source("Functions/Functions.R")
 source("Functions/Graphics.R")
 
+# Load the national level data
+load("Data/tfr_national_mexico.Rda")
+
 ```
 
 
 ## Time trend
-First, we compare the time-trend of male and female total fertility rates.
+First, we compare the time-trend of male and female total fertility rates in Mexico. We use the estimates based on vital statistics data from !(INEGI)[] and from !(the demographic group)[].
+
 
 ```{r}
-# Load the national level data
-load("Data/tfr_national_mexico.Rda")
-
 # What is the trend in the national tfr s
 ggplot(tfr_nat, aes(year)) +
   geom_line(aes(y = tfr_f, colour = "female"), linewidth = 1.4) +
@@ -44,6 +45,7 @@ ggplot(tfr_nat, aes(year)) +
   xlab("Year") +
   guides(colour = "none")
 ```
+The graph shows several time trends. First, both male and female total fertility rates declined between 1990 and 2021 monolithic. Second, the male TFR declined stronger than the female TFR, which led to a closing of the sex difference in total fertility rates. 
 
 ## Age-Specific Differences
 Now, we plot the age-specific differences in fertility between men and women.
@@ -52,38 +54,31 @@ Now, we plot the age-specific differences in fertility between men and women.
 # Load the national level data
 load("Data/asfr_national_mexico.Rda")
 
-# What is the trend in the national TFR for women
-a <- ggplot(asfr_nat, aes(x = age, alpha = year)) +
-  geom_line(aes(y = asfr_f, colour = "female", group = year),
+# What is the trend in the national tfr s
+ggplot(subset(asfr_nat, year %in% seq(1990, 2020, by = 15)), aes(x = age, linetype = as.factor(year))) +
+  geom_line(aes(y = asfr_f, group = year),
             linewidth = 1.4, colour = MPIDRred) +
-  annotate(geom = "text",
-           x = 38, y = 0.17,
-           label = "Female",
-           colour = MPIDRred, size = 8, family = "serif") +
-  scale_y_continuous(expand = c(0, 0)) +
-  ylab("Age-specific fertilitly rate") +
-  xlab("Age") +
-  guides(colour = "none", alpha = "none")
-
-# Plot the trend in the national TFR for men
-b <- ggplot(asfr_nat, aes(x = age, alpha = year)) +
-  geom_line(aes(y = asfr_m, colour = "male", group = year),
+    geom_line(aes(y = asfr_m, group = year),
             linewidth = 1.4, colour = MPIDRblue) +
   annotate(geom = "text",
-           x = 40, y = 0.17, 
-           label = "Male", 
+           x = 18, y = 0.22,
+           label = "Female",
+           colour = MPIDRred, size = 8, family = "serif") +
+  annotate(geom = "text",
+           x =33, y = 0.22,
+           label = "Male",
            colour = MPIDRblue, size = 8, family = "serif") +
-  scale_y_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 0.25)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_linetype_manual(name = "Year", values = c("dotted", "dotdash", "solid")) +
   ylab("Age-specific fertilitly rate") +
   xlab("Age") +
   guides(colour = "none", alpha = "none")
-
-
-a + b + plot_annotation(tag_levels = c("1"), tag_suffix = ")")
 ```
+We find in contrast to other countries, that the fertilty decline is not largely driven by postponement, but rather by a decline in age-specific fertiltiy rates across all age-grouops. A fertility recuperation or a shift of childbearing at a later point is absent in Mexico. Regarding the differences between men and women, there are some noticeable differences. First, across the all years, childbearing for men takes place later in life. This is apparent in higher female age-specific fertility rates ($f(x)$) at younger ages and higher male $f(x)$ at higher ages. This life course behaviour produces a certain cross-over. Second, the spread of childbearing over the life course is wider. For women above age 45, the age-specific fertility rates are almost zero, while for men there is some childbearing at every age. This is consistent with findings from @schoumaker_male_2019 and @dudel_estimating_2019.
 
 ### Cumulative distribution
-Moreover, to understand better the cumulative difference, we are going to estimate the cumulative age-specific fertility rate.
+Moreover, to understand better the postponement behaviour, we are going to estimate the cumulative age-specific fertility rate.
 
 $$cumulative f(x) = \sum_{12}^{x} f(x) $$
 
@@ -96,79 +91,91 @@ asfr_nat <- asfr_nat %>%
          cum_m = cumsum(asfr_m))
 
 # What is the trend in the national tfr s
-c <- ggplot(asfr_nat, aes(x = age, alpha = year)) +
-  geom_line(aes(y = cum_f, colour = "female", group = year),
+ggplot(subset(asfr_nat, year %in% seq(1990, 2020, by = 15)), aes(x = age, linetype = factor(year))) +
+  geom_line(aes(y = cum_f, group = year),
             linewidth = 1.4, colour = MPIDRred) +
-  annotate(geom = "text",
-           x = 22, y = 3.2,
-           label = "Female",
-           colour = MPIDRred, size = 8, family = "serif") +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 4.5)) +
-  scale_x_continuous(expand = c(0, 0)) +
-  ylab("Cumulative age-specific fertilitly rate") +
-  xlab("Age") +
-  guides(colour = "none", alpha = "none")
-
-
-d <- ggplot(asfr_nat, aes(x = age, alpha = year)) +
-  geom_line(aes(y = cum_m, colour = "male", group = year),
+    geom_line(aes(y = cum_m, group = year),
             linewidth = 1.4, colour = MPIDRblue) +
   annotate(geom = "text",
-           x = 24, y = 3.2, 
-           label = "Male", 
+           x = 23, y = 2.2,
+           label = "Female",
+           colour = MPIDRred, size = 8, family = "serif") +
+   annotate(geom = "text",
+           x = 25, y = 0.2,
+           label = "Male",
            colour = MPIDRblue, size = 8, family = "serif") +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 4.5)) +
+  scale_linetype_manual(name = "Year", values = c("dotted", "dotdash", "solid")) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 4.7)) +
   scale_x_continuous(expand = c(0, 0)) +
   ylab("Cumulative age-specific fertilitly rate") +
   xlab("Age") +
   guides(colour = "none", alpha = "none")
 
 
-c + d + plot_annotation(tag_levels = c("1"), tag_suffix = ")")
 ```
 
+Again, we see that fertility declined over time. The cumulative fertility rate in recent years is much lower than the rates for 2005 and 1990. Moreover, we see that in every year the cross-over behavior of male and female fertility. Moreover, the cross-over for male and female fertiltiy rates occurs in all years. However, the cross-over shifted to later ages. In 1990, the male-female fertility cross-over occured at age `r asfr_nat |> filter(cum_f < cum_m & year == 1990) |> ungroup() |> arrange(year)  |> slice_head(n = 1) |> pull(age)`, while in 2020, `r asfr_nat |> filter(cum_f < cum_m & year == 2020) |> ungroup() |> arrange(year)  |> slice_head(n = 1) |> pull(age)`.
+
 ## Decomposing the difference in the total fertility rate
-Another tool to study the difference between the male and female total fertility rate is decomposition methods. The total fertility rate is the sum of the age-specific fertility rates. Because of the additive nature, it is feasible to use standard demographic decomposition methods (@preston_demography_2008, p. 28)
+Another tool to study the difference between the male and female is *decomposition*. The crude fertility rate can be decomposed into two components: *population structure* and *birth rates*. Because of the additive nature, it is feasible to use standard demographic decomposition methods (@preston_demography_2008, p. 28)
 
+
+
+```{r}
+# Plot the crude birth rate for men and women
+cbr_nat <- asfr_nat |>
+  group_by(year) |> 
+  summarise(cbr_f = 1000 * sum(births_f) / sum(exposure_f),
+            cbr_m = 1000 * sum(births_m) / sum(exposure_m))
+
+# Plot the crude birth rates
+ggplot(data = cbr_nat, aes(x = year)) +
+  geom_line(aes(y = cbr_f, colour = "female"), linewidth = 1.4) +
+  geom_line(aes(y = cbr_m, colour = "male"), linewidth = 1.4) +
+  geom_ribbon(aes(ymin = cbr_f, ymax = cbr_m), alpha = 0.3) +
+  annotate(geom = "text",
+           x = 2001, y = 115, 
+           label = "Male", 
+           colour = MPIDRblue, size = 8, family = "serif") +
+  annotate(geom = "text",
+           x = 1998, y = 100,
+           label = "Female",
+           colour = MPIDRred, size = 8, family = "serif") +
+  scale_colour_manual(values = c(MPIDRred, MPIDRblue)) +
+  ylab("Crude birth rate") +
+  xlab("Year") +
+  guides(colour = "none")
+
+```
+We see, that similar as for the total fertility rate, the gap between male and female crude fertility rates has diminished. The decomposition approach looks as follows:
 $$
-\Delta TFR_{f, m} =
-\sum_i \left(\frac{1}{C_i^f} - \frac{1}{C_i^m} \right)  \left[ \frac{b_i^f + b_i^m}{2} \right] +
-\sum_i (b_I^f - b_i^m) \cdot \frac{1}{\left[ \frac{C_i^f + C_i^m}{2} \right]} 
+\Delta CFR_{f, m} =
+\underbrace{\sum_i \left({C_i^f} - {C_i^m} \right)  \left[ \frac{f_i^f + f_i^m}{2} \right]}_{\Delta Population} +
+\underbrace{\sum_i (f_I^f - f_i^m) \cdot {\left[ \frac{C_i^f + C_i^m}{2} \right]}}_{\Delta Rate} 
 $$
-
-The total fertility rate can be decomposed using the following equation:
-
-$$
-\Delta TFR_{f, m} =
-\sum_i s_{i}^{f} \Delta_{i}^{f, m} \left( \frac{B}{P} \right)_{i, f}  +
-\sum_i \left( \frac{B}{P} \right)_{i, f} \Delta s_{i}^{f, m} +
-\sum_i \Delta c_{i}^{f, m} \Delta \left( \frac{B}{P} \right)
-$$
-
-where $B$ is the number of births, $P$ is the population size, $s$ is the share of overall population, $i$ indexes the different age-groups, and $f$ and $m$ are the beginning and ending years. 
-
-
-In the figure below, we see that 
+where $f$ is the age-specific fertility rate, $C$ is the population share, $i$ indexes the different age-groups, and $f$ and $m$ are indicating the male or female part. The first term marks the weighted change in the rate ($\Delta Rate$) and the second term marks the weighted change in population ($\Delta Population$).
 
 ```{r}
 # Estimate the decomposition
-comp_asfr <- asfr_nat %>%
-                group_by(year) %>%
+comp_asfr <- asfr_nat |> 
+                group_by(year) |> 
+                mutate(across(starts_with("asfr"), ~ .x * 1000)) |> 
                 mutate(pop_share_f = pop_share(exposure_f),
                        pop_share_m = pop_share(exposure_m),
-                       delta_pop = difference(pop_share_f, pop_share_m),
-                       delta_rate = difference(asfr_f, asfr_m),
-                       change_rate = pop_share_f * delta_rate,
-                       change_pop  = asfr_f * delta_pop,
-                       change_inter = delta_pop * delta_rate,
-                       .groups = "drop")
+                       mean_pop    = averaging(pop_share_f, pop_share_m),
+                       mean_rate   = averaging(asfr_f, asfr_m),
+                       delta_rate  = (asfr_f - asfr_m) * mean_pop,
+                       delta_pop   = (pop_share_f - pop_share_m) * mean_rate,
+                       .groups     = "drop")
   
 # Make the decomposition
 decomp_nat <- comp_asfr %>%
-  select(year, age, change_rate, change_pop, change_inter) %>%
-  pivot_longer(cols = starts_with("change"),
+  select(year, age, delta_rate, delta_pop) %>%
+  pivot_longer(cols = starts_with("delta"),
                names_to = "component",
-               values_to = "contribution") 
+               values_to = "contribution") |> 
+    inner_join( cbr_nat, by = "year") |> 
+  mutate(contribution = contribution / (cbr_f - cbr_m))
 
 # Plot the decomposition
 decomp_nat %>% 
@@ -177,189 +184,139 @@ decomp_nat %>%
   geom_col(colour = "white", linewidth = 0.01) +
   geom_hline(yintercept = 0, colour = "black") +
   facet_wrap(~ year) +
-  scale_fill_manual(values = c(MPIDRred, MPIDRorange, MPIDRblue),
-                    labels = c(expression(paste(Delta, "Population and rate")),
-                             expression(paste(Delta, "Population")),
+  scale_fill_manual(values = c(MPIDRred,  MPIDRblue),
+                    labels = c(expression(paste(Delta, "Population")),
                              expression(paste(Delta, "Rate"))),
                     name = "Component: ") +
   scale_x_continuous(expand = c(0, 0)) +
-  ylab("Contribution") + xlab("Age") +
+  scale_y_continuous(labels = scales::percent) +
+  ylab("% Contribution") + xlab("Age") +
   theme(legend.key.width = unit(0.3, "cm"),
         legend.key.height = unit(0.2, "cm"))
 
 ```
+
+In the figure, we see that the largest contribution stems from the age-specific rates. This is the reason, why the sex differences exist also for the *total fertility rate*, and not just the crude birth rate. Over time we see that contribution of the rates diminish in contribution to differences. 
+
+In order to better understand the size of the contribution, we create tables that display the components with the largest contribution.
+
+```{r}
+# Make a table for the relative contribution
+decomp_nat |>  
+  filter(year == 1990) |>  
+  ungroup() |> 
+  arrange(contribution) |> 
+  mutate(relative_contribution =  paste(round(100 * contribution, 2), "%"),
+         diff = cbr_f - cbr_m) |>
+  select(component, age, relative_contribution, cbr_f, cbr_m, diff) |> 
+  slice_head(n = 5) |>  
+  pander(col.names = c("Component", "Age", "Contribution (%)", "CBR (females)", "CBR (males)", "Difference"))
+```
+
+
+```{r}
+# Cumulative contribution of components
+relative_contribution |> 
+  group_by(year, component) |>
+  summarise(contribution = sum(contribution),
+            cbr_m = unique(cbr_m),
+            cbr_f = unique(cbr_f),
+            diff = unique(diff),
+            .groups = "drop") |> 
+  filter(year %in% seq(1990, 2020, by = 15)) |> 
+  pivot_wider(names_from = "component", values_from = "contribution") |> 
+  pander(col.names = c("Year", "CBR (men)", "CBR (women)", "Difference", "Population ", "Rate"))
+```
+
 
 Moreover, since we have the additive components for single years, we can also investigate how the different components changed over time in order to better explain the changes in the gap between male and female fertility rate.
 
 ```{r}
-# Plot the time trend for populatin estimates
+# Plot the time trend for populatoin estimates
 decomp_nat %>% 
-  filter(age %in% c(15, 25, 35, 45)) %>% 
-  ggplot(aes(x = year, contribution, colour = component, group = component)) +
+  filter(age %in% c(18, 30, 45))|> 
+  ggplot(aes(x = year, contribution, colour = component, group = interaction(component, age), linetype = factor(age))) +
   geom_line(linewidth = 1.2) +
   geom_hline(yintercept = 0, colour = "black") +
-  scale_colour_manual(values = c(MPIDRred, MPIDRorange, MPIDRblue),
-                    labels = c(expression(paste(Delta, "Population and rate")),
-                             expression(paste(Delta, "Population")),
+  scale_colour_manual(values = c(MPIDRred, MPIDRblue),
+                    labels = c(expression(paste(Delta, "Population")),
                              expression(paste(Delta, "Rate"))),
                     name = "Component: ") +
-  scale_y_continuous(labels = scales::label_number_si()) +
-  scale_x_continuous(expand = c(0, 0)) +
-  facet_wrap( ~ age) +
-  theme(legend.key.width = unit(0.3, "cm"),
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_continuous(expand = c(0, 0), n.breaks = 20) +
+  scale_linetype_manual(name = "Age", values = c("dotted", "solid", "longdash")) +
+  theme(legend.key.width = unit(0.5, "cm"),
         legend.key.height = unit(0.2, "cm"),
-        axis.text.x = element_text(angle = 45, hjust = 1) )
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ylab("% Contribution") + xlab("Year")
+
 ```
 
-In order to better understand the size of the contribution, we create tables that display the components with the largest contribution.
+We find an U-shape pattern for the rate components. This implies that the effects on the sex-gap in the *CBR* are larger in the early and late years, compared to the period in the early 2000. For the population comopnent
+
+
+# Regression based methods
+
+## Generalized additive models (GAMs)
+
+## Demographic modeling
+
+@paget_relational_1994 developed a relational gompertz model for male fertility. It combines theoretical and empirical approaches. The model is based on a standard pattern of fertility. The observed fertility is assumed to be linearly related to the standard, rather than to age. The model contains two parameters $\alpha$ and $\beta$, which determine the location and dispersion of the fertility distribution.
+
+This fact is particularly usefull, since male fertility is more dispersed than female fertility. 
+
+### Estimation
+
+1. A *stretch factor* is estimated. Which is the ratio of the male reproductive span to the female reproductive span.
+
+$$ 
+stretch-factor = \frac{(Age_{max}^{m} - Age_{min}^{m})}{(Age_{max}^{f} - Age_{min}^{f})}
+$$
+
+2. The female ages are transformed, while the the original $Y_s(x)$ remains attached.
+
+$$
+Age^m = age^f \cdot stretch-factor
+$$
+
+3. The stretched values of $Y_s(x)$ are then converted back to data for whole years by polynomial interpolation on the Gompertz scale. 
 
 ```{r}
-# Create a table
-left_join(decomp_nat, tfr_nat, by = c("year")) %>%
-  mutate(change = tfr_f - tfr_m,
-         relative_contribution = contribution / change, 2) %>% 
-  filter(year == 1990) %>% 
-  ungroup() %>% 
-  select(component, age, contribution,
-         relative_contribution, tfr_f, tfr_m, change) %>% 
-  arrange(desc(abs(relative_contribution))) %>%
-  mutate(relative_contribution =  paste(round(100 * relative_contribution, 2), "%")) %>%
-  slice_head(n = 5) %>% 
-  pander()
+# 1. Stretch the age factor
+stretch_factor <- (59 - 15) / (49 - 15) 
+
+# 2. Stretch the ages for women
+asfr_nat <- asfr_nat |> 
+  mutate(age_stretched = age * stretch_factor)
+
+# 3. Fit the polynomial
+model_data <- asfr_nat |> 
+  group_by(year) |> 
+  nest()
+
+# Run the regressions
+predictions <- model_data |> 
+  mutate(polyModel = map(data, ~ lm(data = ., asfr_f ~ age_stretched + age_stretched^2)),
+         coefficients = map(polyModel, coefficients)) |> 
+  select(year, coefficients) |> 
+  unnest(cols = c(coefficients)) |> 
+  mutate(nr = row_number(), .groups = year) |> 
+  pivot_wider(names_from = "nr", values_from = "coefficients")
+
+
+#
+predict_funct <- function(coeff1, coeff2){
+tmp <- 15:59 * coeff1 + 15:59 *coeff2^2
+return(tmp)
+}
+
+
+# Estimate the predictions
+predictions |> 
+  mutate(predictions = map(`1`, `2`, ~ predict_funct(coeff1 = .x, coeff2 = .y))) 
+
 ```
 
-
-
-# Sub-national level
-Now, we are looking at the variation at the sub-national level.
-
-```{r}
-# Load the national level data
-load("Data/tfr_regional_mexico.Rda")
-
-# What is the trend in the national tfr s
-ggplot(tfr_reg, aes(year)) +
-  geom_line(aes(y = tfr_f, colour = "female", group = entity), linewidth = 1.4, alpha = 0.5) +
-  geom_line(aes(y = tfr_m, colour = "male", group = entity), linewidth = 1.4, alpha = 0.5) +
-  annotate(geom = "text",
-           x = 2018, y = 4, 
-           label = "Male", 
-           colour = MPIDRblue, size = 8, family = "serif") +
-  annotate(geom = "text",
-           x = 1998, y = 1.8,
-           label = "Female",
-           colour = MPIDRred, size = 8, family = "serif") +
-  scale_colour_manual(values = c(MPIDRred, MPIDRblue)) +
-  scale_x_continuous(expand = c(0, 0)) +
-  ylab("Total fertility rate") +
-  xlab("Year") +
-  guides(colour = "none")
-```
-
-
-```{r}
-# Load the national level data
-load("Data/asfr_regional_mexico.Rda")
-
-# What is the trend in the national TFR for women
-ggplot(asfr_reg, aes(x = age, alpha = year)) +
-  geom_line(aes(y = asfr_f, colour = entity_name, group = interaction(year, entity)),
-            linewidth = 1.4) +
-  ylab("Age-specific fertilitly rate") +
-  xlab("Age") +
-  facet_wrap(~ entity_name) +
-  guides(alpha = "none", colour = "none")
-```
-
-
-```{r}
-# What is the trend in the national TFR for women
-ggplot(asfr_reg, aes(x = age, alpha = year)) +
-  geom_line(aes(y = asfr_m, colour = entity_name, group = interaction(year, entity)),
-            linewidth = 1.4) +
-  ylab("Age-specific fertilitly rate") +
-  xlab("Age") +
-  facet_wrap(~ entity_name) +
-  guides(alpha = "none", colour = "none")
-```
-
-The graphs are overfull. In order to make the graphics comparable, we estimate the male-to-female asfr ratio
-
-```{r}
-# Plot the age-specific fertility rates
-asfr_reg %>% 
-  mutate(asfr_ratio = asfr_m / asfr_f) %>% 
-  ggplot(aes(x = age, alpha = year)) +
-  geom_line(aes(y = asfr_ratio, colour = entity_name, group = interaction(year, entity)),
-            linewidth = 1.4) +
-  geom_hline(yintercept = 1) +
-  ylab("Age-specific fertilitly rate") +
-  scale_y_continuous(trans = "log10", labels = scales::label_number_si()) +
-  xlab("Age") +
-  facet_wrap(~ entity_name) +
-  guides(alpha = "none", colour = "none")
-```
-
-### Decomposition of regional differences
-
-
-```{r}
-# Estimate the decomposition
-comp_asfr_reg <- asfr_reg %>%
-                group_by(year, entity_name, entity) %>%
-                mutate(pop_share_f = pop_share(mid_year_pop_f),
-                       pop_share_m = pop_share(mid_year_pop_m),
-                       delta_pop = difference(pop_share_f, pop_share_m),
-                       delta_rate = difference(asfr_f, asfr_m),
-                       change_rate = pop_share_f * delta_rate,
-                       change_pop  = asfr_f * delta_pop,
-                       change_inter = delta_pop * delta_rate)
-  
-# Make the decomposition
-decomp_reg <- comp_asfr_reg %>%
-  select(year, age, change_rate, 
-         change_pop, change_inter, entity_name) %>%
-  pivot_longer(cols = starts_with("change"),
-               names_to = "component",
-               values_to = "contribution") 
-
-# Plot the decomposition
-decomp_reg %>% 
-  filter(year %in% c(1990, 2020) &
-         entity_name %in% c("Baja California Sur",
-                            "Guerrero")) %>% 
-  ggplot(aes(age, contribution, fill = component)) +
-  geom_col(colour = "white", linewidth = 0.01) +
-  geom_hline(yintercept = 0, colour = "black") +
-  facet_grid(entity_name ~ year) +
-  scale_fill_manual(values = c(MPIDRred, MPIDRorange, MPIDRblue),
-                    labels = c(expression(paste(Delta, "Population and rate")),
-                             expression(paste(Delta, "Population")),
-                             expression(paste(Delta, "Rate"))),
-                    name = "Component: ") +
-  scale_x_continuous(expand = c(0, 0)) +
-  ylab("Contribution") + xlab("Age") +
-  theme(legend.key.width = unit(0.3, "cm"),
-        legend.key.height = unit(0.2, "cm"))
-```
-
-In order to better understand the size of the contribution, we create tables that display the components with the largest contribution.
-
-
-```{r}
-# Create a table
-left_join(decomp_reg, tfr_reg, by = c("year", "entity")) %>%
-  mutate(change = tfr_f - tfr_m,
-         relative_contribution = contribution / change, 2) %>% 
-  filter(year == 1990) %>% 
-  ungroup() %>% 
-  select(component, entity_name, age, contribution,
-         relative_contribution, tfr_f, tfr_m, change) %>% 
-  arrange(desc(abs(relative_contribution))) %>%
-  mutate(relative_contribution =  paste(round(100 * relative_contribution, 2), "%")) %>%
-  slice_head(n = 5) %>% 
-  pander()
-```
 
 # References
 
