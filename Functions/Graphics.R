@@ -36,3 +36,6 @@ MPIDRred <- "#8E2A3B"
 MPIDRorange <- "#EF7D00"
 MPIDRblue <- "#08445F"
 MPIDRyellow <- "#FAAF3B"
+
+
+MPIDRpallette <- c(MPIDRgreen, MPIDRorange, MPIDRred, MPIDRpurple, MPIDRblue)

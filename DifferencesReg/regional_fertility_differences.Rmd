@@ -1,0 +1,170 @@
+---
+title: "Male-Female fertility differences at the regional level"
+author: "Henrik Schubert"
+date: "2023-06-06"
+output: pdf_document
+bibliography: U:/male fertility/Male_Fertility_Mexico/Text/references.bib
+abstract: "In this file, male and female fertility rates in Mexico at the regional level are compared. We will use graphical tools, distributional comparison measures, decomposition methods and statistical tests. The comparisons will be both over time, and at the national level "
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+# Load the functions and packages
+source("Functions/Packages.R")
+source("Functions/Functions.R")
+source("Functions/Graphics.R")
+
+# Load the national level data
+load("Data/tfr_regional_mexico.Rda")
+```
+
+
+```{r}
+### Plot the distribution over time
+tfr_reg %>% 
+  pivot_longer(cols = starts_with("tfr"), names_prefix = "tfr_", values_to = "tfr", names_to = "sex") %>% 
+  filter(sex != "TFR_ratio") %>% 
+  ggplot(aes(as.factor(year), tfr, fill = sex, colour = sex)) +
+  scale_fill_manual(values = c( MPIDRred, MPIDRblue), name = "Sex:") +
+  scale_colour_manual(values = c( MPIDRred, MPIDRblue), name = "Sex:") +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = c(0.8, 0.9)) +
+  ylab("Total fertility rate") +
+  xlab("Year")
+```
+
+
+# Sub-national level
+Now, we are looking at the variation at the sub-national level.
+
+```{r}
+# What is the trend in the national tfr s
+ggplot(tfr_reg, aes(year)) +
+  geom_line(aes(y = tfr_f, colour = "female", group = entity), linewidth = 1.4, alpha = 0.5) +
+  geom_line(aes(y = tfr_m, colour = "male", group = entity), linewidth = 1.4, alpha = 0.5) +
+  annotate(geom = "text",
+           x = 2018, y = 4, 
+           label = "Male", 
+           colour = MPIDRblue, size = 8, family = "serif") +
+  annotate(geom = "text",
+           x = 1998, y = 1.8,
+           label = "Female",
+           colour = MPIDRred, size = 8, family = "serif") +
+  scale_colour_manual(values = c(MPIDRred, MPIDRblue)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  ylab("Total fertility rate") +
+  xlab("Year") +
+  guides(colour = "none")
+```
+
+
+```{r}
+# Load the national level data
+load("Data/asfr_regional_mexico.Rda")
+
+# What is the trend in the national TFR for women
+ggplot(asfr_reg, aes(x = age, alpha = year)) +
+  geom_line(aes(y = asfr_f, colour = entity_name, group = interaction(year, entity)),
+            linewidth = 1.4) +
+  ylab("Age-specific fertilitly rate") +
+  xlab("Age") +
+  facet_wrap(~ entity_name) +
+  guides(alpha = "none", colour = "none")
+```
+
+
+```{r}
+# What is the trend in the national TFR for women
+ggplot(asfr_reg, aes(x = age, alpha = year)) +
+  geom_line(aes(y = asfr_m, colour = entity_name, group = interaction(year, entity)),
+            linewidth = 1.4) +
+  ylab("Age-specific fertilitly rate") +
+  xlab("Age") +
+  facet_wrap(~ entity_name) +
+  guides(alpha = "none", colour = "none")
+```
+
+The graphs are overfull. In order to make the graphics comparable, we estimate the male-to-female asfr ratio
+
+```{r}
+# Plot the age-specific fertility rates
+asfr_reg %>% 
+  mutate(asfr_ratio = asfr_m / asfr_f) %>% 
+  ggplot(aes(x = age, alpha = year)) +
+  geom_line(aes(y = asfr_ratio, colour = entity_name, group = interaction(year, entity)),
+            linewidth = 1.4) +
+  geom_hline(yintercept = 1) +
+  ylab("Age-specific fertilitly rate") +
+  scale_y_continuous(trans = "log10", labels = scales::label_number_si()) +
+  xlab("Age") +
+  facet_wrap(~ entity_name) +
+  guides(alpha = "none", colour = "none")
+```
+
+
+
+
+### Decomposition of regional differences
+
+
+```{r}
+# Estimate the decomposition
+comp_asfr_reg <- asfr_reg %>%
+                group_by(year, entity_name, entity) %>%
+                mutate(pop_share_f = pop_share(mid_year_pop_f),
+                       pop_share_m = pop_share(mid_year_pop_m),
+                       delta_pop = difference(pop_share_f, pop_share_m),
+                       delta_rate = difference(asfr_f, asfr_m),
+                       change_rate = pop_share_f * delta_rate,
+                       change_pop  = asfr_f * delta_pop,
+                       change_inter = delta_pop * delta_rate)
+  
+# Make the decomposition
+decomp_reg <- comp_asfr_reg %>%
+  select(year, age, change_rate, 
+         change_pop, change_inter, entity_name) %>%
+  pivot_longer(cols = starts_with("change"),
+               names_to = "component",
+               values_to = "contribution") 
+
+# Plot the decomposition
+decomp_reg %>% 
+  filter(year %in% c(1990, 2020) &
+         entity_name %in% c("Baja California Sur",
+                            "Guerrero")) %>% 
+  ggplot(aes(age, contribution, fill = component)) +
+  geom_col(colour = "white", linewidth = 0.01) +
+  geom_hline(yintercept = 0, colour = "black") +
+  facet_grid(entity_name ~ year) +
+  scale_fill_manual(values = c(MPIDRred, MPIDRorange, MPIDRblue),
+                    labels = c(expression(paste(Delta, "Population and rate")),
+                             expression(paste(Delta, "Population")),
+                             expression(paste(Delta, "Rate"))),
+                    name = "Component: ") +
+  scale_x_continuous(expand = c(0, 0)) +
+  ylab("Contribution") + xlab("Age") +
+  theme(legend.key.width = unit(0.3, "cm"),
+        legend.key.height = unit(0.2, "cm"))
+```
+
+In order to better understand the size of the contribution, we create tables that display the components with the largest contribution.
+
+
+```{r}
+# Create a table
+left_join(decomp_reg, tfr_reg, by = c("year", "entity")) %>%
+  mutate(change = tfr_f - tfr_m,
+         relative_contribution = contribution / change, 2) %>% 
+  filter(year == 1990) %>% 
+  ungroup() %>% 
+  select(component, entity_name, age, contribution,
+         relative_contribution, tfr_f, tfr_m, change) %>% 
+  arrange(desc(abs(relative_contribution))) %>%
+  mutate(relative_contribution =  paste(round(100 * relative_contribution, 2), "%")) %>%
+  slice_head(n = 5) %>% 
+  pander()
+```
